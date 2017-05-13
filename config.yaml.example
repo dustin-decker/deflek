@@ -1,0 +1,4 @@
+port: 8080
+target: http://localhost:5601
+targetPathPrefix:
+whitelistedRoutes: ^\/app\/kibana|^\/bundles\/.*|^\/ui\/.*|^\/api\/.*|^\/plugins\/.*|^\/elasticsearch\/.kibana\/index-pattern\/_search|^\/elasticsearch\/.kibana\/_mapping\/\*\/field\/_source|^\/elasticsearch\/_mget|^\/elasticsearch\/.*\/_field_stats|^\/elasticsearch\/_msearch
