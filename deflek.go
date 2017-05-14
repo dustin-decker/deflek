@@ -34,14 +34,16 @@ func New(target string) *Prox {
 
 func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 
-	if p.routePatterns == nil || p.parseWhiteList(r) {
+	if p.checkWhiteLists(r) {
 		p.proxy.ServeHTTP(w, r)
 	}
 }
 
-func (p *Prox) parseWhiteList(r *http.Request) bool {
+func (p *Prox) checkWhiteLists(r *http.Request) bool {
+
+	// Check Kibana queries against whitelisted indices
 	search, _ := regexp.Compile(`^\/elasticsearch\/_msearch`)
-	whitelistIndex := []string{".kibana", "metrics"}
+	whitelistedIndicies := viper.GetStringSlice("whitelistedIndices")
 	if search.MatchString(r.URL.Path) {
 		buf, _ := ioutil.ReadAll(r.Body)
 		rdr1 := ioutil.NopCloser(bytes.NewBuffer(buf))
@@ -59,12 +61,14 @@ func (p *Prox) parseWhiteList(r *http.Request) bool {
 			return false
 		}
 		for _, val := range f.Index {
-			if !goutil.StringInSlice(val, whitelistIndex) {
+			if !goutil.StringInSlice(val, whitelistedIndicies) {
 				fmt.Printf("%s not in index whitelist", val)
 				return false
 			}
 		}
 	}
+
+	// Check against whitelisted routes
 	for _, regexp := range p.routePatterns {
 		fmt.Println(r.URL.Path)
 		path := strings.TrimPrefix(r.URL.Path, viper.GetString("targetPathPrefix"))
