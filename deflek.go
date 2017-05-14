@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -32,12 +33,13 @@ type Prox struct {
 // Config for reverse proxy settings and RBAC users and groups
 // Unmarshalled from config on disk
 type Config struct {
-	ListenInterface   string
-	ListenPort        int
-	Target            string
-	TargetPathPrefix  string
-	WhitelistedRoutes string
-	RBAC              struct {
+	ListenInterface      string
+	ListenPort           int
+	Target               string
+	TargetPathPrefix     string
+	WhitelistedRoutes    string
+	AnonymousMetricsUser bool
+	RBAC                 struct {
 		Groups map[string]Permissions
 		Users  map[string]Permissions
 	}
@@ -64,14 +66,71 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Prox) checkWhiteLists(r *http.Request, C *Config) bool {
+	path := strings.TrimPrefix(r.URL.Path, C.TargetPathPrefix)
+
+	// Check Kibana queries against whitelisted indices
+	search, _ := regexp.Compile(`^\/elasticsearch\/_msearch`)
+	if search.MatchString(path) {
+		whitelistedIndices, err := GetWhitelistedIndices(r, C)
+		if err != nil {
+			fmt.Println(err.Error())
+			return false
+		}
+
+		buf, _ := ioutil.ReadAll(r.Body)
+		rdr1 := ioutil.NopCloser(bytes.NewBuffer(buf))
+		// If we don't keep a second reader untouched, we will consume
+		// the request body when reading it
+		rdr2 := ioutil.NopCloser(bytes.NewBuffer(buf))
+		r.Body = rdr2
+		decoder := json.NewDecoder(rdr1)
+		f := SearchReq{}
+		err = decoder.Decode(&f)
+		if err != nil {
+			return false
+		}
+		// add the rest of the fields
+		err = decoder.Decode(&f.X)
+		if err != nil {
+			return false
+		}
+		for _, index := range f.Index {
+			if !goutil.StringInSlice(index, whitelistedIndices) {
+				fmt.Printf("%s not in index whitelist", index)
+				return false
+			}
+		}
+	}
+
+	// Check against whitelisted routes
+	for _, regexp := range p.routePatterns {
+		fmt.Println(r.URL.Path)
+		if !regexp.MatchString(path) {
+			fmt.Printf("Not accepted routes %x", r.URL.Path)
+			return false
+		}
+	}
+
+	fmt.Println(r.URL.Fragment)
+
+	return true
+}
+
+// GetWhitelistedIndices returns indices whitelisted for the user and group provided
+func GetWhitelistedIndices(r *http.Request, C *Config) ([]string, error) {
+
+	var whitelistedIndices []string
 
 	// Username is trusted input provided by a SSO proxy layer
 	var username string
 	if _, ok := r.Header["Username"]; ok {
 		username = r.Header["Username"][0]
 	} else {
-		fmt.Println("No Username header provided")
-		return false
+		if C.AnonymousMetricsUser {
+			username = "metrics"
+		} else {
+			return whitelistedIndices, errors.New(("No Username header provided"))
+		}
 	}
 
 	var groups []string
@@ -79,7 +138,6 @@ func (p *Prox) checkWhiteLists(r *http.Request, C *Config) bool {
 	if _, ok := r.Header["Groups"]; ok {
 		groups = r.Header["Groups"]
 	}
-	var whitelistedIndices []string
 	for _, group := range groups {
 		if _, ok := C.RBAC.Groups[group]; ok {
 			whitelistedIndices = append(whitelistedIndices,
@@ -94,48 +152,7 @@ func (p *Prox) checkWhiteLists(r *http.Request, C *Config) bool {
 		}
 	}
 	fmt.Printf("User %s permitted to %s indices", username, whitelistedIndices)
-
-	// Check Kibana queries against whitelisted indices
-	search, _ := regexp.Compile(`^\/elasticsearch\/_msearch`)
-	if search.MatchString(r.URL.Path) {
-		buf, _ := ioutil.ReadAll(r.Body)
-		rdr1 := ioutil.NopCloser(bytes.NewBuffer(buf))
-		// If we don't keep a second reader untouched, we will consume
-		// the request body when reading it
-		rdr2 := ioutil.NopCloser(bytes.NewBuffer(buf))
-		r.Body = rdr2
-		decoder := json.NewDecoder(rdr1)
-		f := SearchReq{}
-		err := decoder.Decode(&f)
-		if err != nil {
-			return false
-		}
-		// add the rest of the fields
-		err = decoder.Decode(&f.X)
-		if err != nil {
-			return false
-		}
-		for _, val := range f.Index {
-			if !goutil.StringInSlice(val, whitelistedIndices) {
-				fmt.Printf("%s not in index whitelist", val)
-				return false
-			}
-		}
-	}
-
-	// Check against whitelisted routes
-	for _, regexp := range p.routePatterns {
-		fmt.Println(r.URL.Path)
-		path := strings.TrimPrefix(r.URL.Path, viper.GetString("TargetPathPrefix"))
-		if !regexp.MatchString(path) {
-			fmt.Printf("Not accepted routes %x", r.URL.Path)
-			return false
-		}
-	}
-
-	//fmt.Println(r.URL.Fragment)
-
-	return true
+	return whitelistedIndices, nil
 }
 
 func main() {
@@ -151,7 +168,7 @@ func main() {
 	var C Config
 	err = viper.Unmarshal(&C)
 	if err != nil {
-		panic(fmt.Errorf("unable to decode into struct, %v", err))
+		panic(fmt.Errorf("Unable to decode config into struct: %v", err))
 	}
 
 	whitelistedRoutes := viper.GetString("WhitelistedRoutes")
