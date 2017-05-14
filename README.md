@@ -10,7 +10,7 @@ Features:
 - whitelist indicies that can be queried in Kibana by users and groups
 
 Desired Features:
-- access control for Kibana features (index pattern management, console, etc)
+- Kibana feature toggles (index pattern management, console, etc)
 - whitelist REST verbs and indices for Elasticsearch requests
 - query traces - audit log, execution time (using log15 JSON)
 - request traces - auditlog, execution time (using log15 JSON)
