@@ -1,7 +1,23 @@
-port: 8080
-target: http://localhost:5601
-targetPathPrefix:
-whitelistedIndices:
-  - .kibana
-  - metrics
-whitelistedRoutes: ^\/app\/kibana|^\/bundles\/.*|^\/ui\/.*|^\/api\/.*|^\/plugins\/.*|^\/elasticsearch\/.kibana\/index-pattern\/_search|^\/elasticsearch\/.kibana\/_mapping\/\*\/field\/_source|^\/elasticsearch\/_mget|^\/elasticsearch\/.*\/_field_stats|^\/elasticsearch\/_msearch
+Port: 8080
+Target: http://localhost:5601
+TargetPathPrefix:
+WhitelistedRoutes: ^\/app\/kibana|^\/bundles\/.*|^\/ui\/.*|^\/api\/.*|^\/plugins\/.*|^\/elasticsearch\/.kibana\/index-pattern\/_search|^\/elasticsearch\/.kibana\/_mapping\/\*\/field\/_source|^\/elasticsearch\/_mget|^\/elasticsearch\/.*\/_field_stats|^\/elasticsearch\/_msearch
+
+RBAC:
+  Groups:
+    group1:
+      WhitelistedIndices:
+        - .kibana
+        - group1
+      CanManage: true
+    group2:
+      WhitelistedIndices:
+        - .kibana
+        - group2
+      CanManage: false
+  Users:
+    dustind:
+      WhitelistedIndices:
+        - .kibana
+        - metrics-test
+      CanManage: true
