@@ -78,11 +78,12 @@ func (p *Prox) checkWhiteLists(r *http.Request, C *Config) bool {
 		}
 	}
 
-	// Don't allow modifing kibana settings if CanManage == false
+	// Control index pattern access
 	if !permissions.CanManage && strings.HasPrefix(path, "/elasticsearch/.kibana/index-pattern") && !strings.HasPrefix(path, "/elasticsearch/.kibana/index-pattern/_search") {
 		fmt.Printf("Cannot manage %s", r.URL.Path)
 		return false
 	}
+	// Control api console access
 	if !permissions.CanManage && strings.HasPrefix(path, "/api/console") {
 		fmt.Printf("Cannot manage %s", r.URL.Path)
 		return false
@@ -114,7 +115,9 @@ func (p *Prox) checkWhiteLists(r *http.Request, C *Config) bool {
 			return false
 		}
 		for _, index := range f.Index {
-			if !goutil.StringInSlice(index, permissions.WhitelistedIndices) {
+			suffix := regexp.MustCompile(`([a-zA-z0-9]*)-[0-9]{4}\.[0-9]{2}\.[0-9]{2}`)
+			trimmedIndex := suffix.ReplaceAllString(index, "${1}")
+			if !goutil.StringInSlice(trimmedIndex, permissions.WhitelistedIndices) {
 				fmt.Printf("%s not in index whitelist", index)
 				return false
 			}
