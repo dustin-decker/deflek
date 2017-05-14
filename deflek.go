@@ -15,11 +15,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+// SearchReq unmarshalls index field from Kibana json request
 type SearchReq struct {
 	Index []string               `json:"index"`
 	X     map[string]interface{} `json:"-"` // Rest of the fields should go here.
 }
 
+// Prox defines our reverse proxy
 type Prox struct {
 	config        *Config
 	target        *url.URL
@@ -27,6 +29,8 @@ type Prox struct {
 	routePatterns []*regexp.Regexp
 }
 
+// Config for reverse proxy settings and RBAC users and groups
+// Unmarshalled from config on disk
 type Config struct {
 	Port              string
 	Target            string
@@ -38,11 +42,13 @@ type Config struct {
 	}
 }
 
+// Permissions structure for groups and users
 type Permissions struct {
 	WhitelistedIndices []string
 	CanManage          bool
 }
 
+// NewProx returns new reverse proxy instance
 func NewProx(C *Config) *Prox {
 	url, _ := url.Parse(C.Target)
 
