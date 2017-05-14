@@ -32,7 +32,8 @@ type Prox struct {
 // Config for reverse proxy settings and RBAC users and groups
 // Unmarshalled from config on disk
 type Config struct {
-	Port              string
+	ListenInterface   string
+	ListenPort        int
 	Target            string
 	TargetPathPrefix  string
 	WhitelistedRoutes string
@@ -69,6 +70,7 @@ func (p *Prox) checkWhiteLists(r *http.Request, C *Config) bool {
 	if _, ok := r.Header["Username"]; ok {
 		username = r.Header["Username"][0]
 	} else {
+		fmt.Println("No Username header provided")
 		return false
 	}
 
@@ -130,14 +132,18 @@ func (p *Prox) checkWhiteLists(r *http.Request, C *Config) bool {
 			return false
 		}
 	}
+
+	//fmt.Println(r.URL.Fragment)
+
 	return true
 }
 
 func main() {
 	// Get config
-	viper.SetConfigName("config") // name of config file (without extension)
+	viper.SetConfigName("config") // name of config file (without extension)\
+	// yaml, toml, json, ini, it don't care
 	viper.AddConfigPath(".")
-	err := viper.ReadInConfig() // yaml, toml, json, ini, whatever
+	err := viper.ReadInConfig()
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s", err))
 	}
@@ -160,5 +166,5 @@ func main() {
 	proxy.routePatterns = routes
 
 	http.HandleFunc("/", proxy.handle)
-	http.ListenAndServe(fmt.Sprintf(":%s", C.Port), nil)
+	http.ListenAndServe(fmt.Sprintf("%s:%d", C.ListenInterface, C.ListenPort), nil)
 }

@@ -1,4 +1,5 @@
-Port: 8080
+ListenInterface: 127.0.0.1
+ListenPort: 8080
 Target: http://localhost:5601
 TargetPathPrefix:
 WhitelistedRoutes: ^.*

@@ -13,4 +13,4 @@ Desired Features:
 - Kibana feature toggles (index pattern management, console, etc)
 - whitelist REST verbs and indices for Elasticsearch requests
 - query traces - audit log, execution time (using log15 JSON)
-- request traces - auditlog, execution time (using log15 JSON)
+- request traces - audit log, execution time (using log15 JSON)
