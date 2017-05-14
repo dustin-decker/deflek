@@ -67,11 +67,21 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 
 func (p *Prox) checkWhiteLists(r *http.Request, C *Config) bool {
 	path := strings.TrimPrefix(r.URL.Path, C.TargetPathPrefix)
+	permissions, err := GetPermissions(r, C)
+
+	// Check against whitelisted routes
+	for _, regexp := range p.routePatterns {
+		fmt.Println(r.URL.Path)
+		if !regexp.MatchString(path) {
+			fmt.Printf("Not accepted routes %x", r.URL.Path)
+			return false
+		}
+	}
 
 	// Check Kibana queries against whitelisted indices
 	search, _ := regexp.Compile(`^\/elasticsearch\/_msearch`)
 	if search.MatchString(path) {
-		whitelistedIndices, err := GetWhitelistedIndices(r, C)
+
 		if err != nil {
 			fmt.Println(err.Error())
 			return false
@@ -95,51 +105,46 @@ func (p *Prox) checkWhiteLists(r *http.Request, C *Config) bool {
 			return false
 		}
 		for _, index := range f.Index {
-			if !goutil.StringInSlice(index, whitelistedIndices) {
+			if !goutil.StringInSlice(index, permissions.WhitelistedIndices) {
 				fmt.Printf("%s not in index whitelist", index)
 				return false
 			}
 		}
 	}
 
-	// Check against whitelisted routes
-	for _, regexp := range p.routePatterns {
-		fmt.Println(r.URL.Path)
-		if !regexp.MatchString(path) {
-			fmt.Printf("Not accepted routes %x", r.URL.Path)
-			return false
-		}
-	}
-
-	fmt.Println(r.URL.Fragment)
-
 	return true
 }
 
-// GetWhitelistedIndices returns indices whitelisted for the user and group provided
-func GetWhitelistedIndices(r *http.Request, C *Config) ([]string, error) {
+// GetPermissions returns indices whitelisted for the user and group provided
+func GetPermissions(r *http.Request, C *Config) (Permissions, error) {
 
 	var whitelistedIndices []string
 
 	// Username is trusted input provided by a SSO proxy layer
 	var username string
+	var userCanManage bool
 	if _, ok := r.Header["Username"]; ok {
 		username = r.Header["Username"][0]
 	} else {
 		if C.AnonymousMetricsUser {
 			username = "metrics"
 		} else {
-			return whitelistedIndices, errors.New(("No Username header provided"))
+			return Permissions{}, errors.New(("No Username header provided"))
 		}
 	}
 
-	var groups []string
 	// Group is trusted input provided by a SSO proxy layer
+	var groups []string
 	if _, ok := r.Header["Groups"]; ok {
 		groups = r.Header["Groups"]
 	}
+
+	groupCanManage := false
 	for _, group := range groups {
 		if _, ok := C.RBAC.Groups[group]; ok {
+			if C.RBAC.Groups[group].CanManage == true {
+				groupCanManage = true
+			}
 			whitelistedIndices = append(whitelistedIndices,
 				C.RBAC.Groups[group].WhitelistedIndices...)
 		}
@@ -151,8 +156,13 @@ func GetWhitelistedIndices(r *http.Request, C *Config) ([]string, error) {
 			}
 		}
 	}
-	fmt.Printf("User %s permitted to %s indices", username, whitelistedIndices)
-	return whitelistedIndices, nil
+
+	userCanManage = C.RBAC.Users[username].CanManage
+
+	permissions := Permissions{WhitelistedIndices: whitelistedIndices,
+		CanManage: (userCanManage || groupCanManage)}
+
+	return permissions, nil
 }
 
 func main() {
@@ -171,9 +181,7 @@ func main() {
 		panic(fmt.Errorf("Unable to decode config into struct: %v", err))
 	}
 
-	whitelistedRoutes := viper.GetString("WhitelistedRoutes")
-
-	reg, err := regexp.Compile(whitelistedRoutes)
+	reg, err := regexp.Compile(C.WhitelistedRoutes)
 	if err != nil {
 		panic(fmt.Errorf("Error compiling whitelistedRoutes regex: %s", err))
 	}
