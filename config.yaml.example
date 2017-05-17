@@ -1,24 +1,24 @@
-ListenInterface: 127.0.0.1
-ListenPort: 8080
-Target: http://localhost:5601
-TargetPathPrefix:
-WhitelistedRoutes: ^.*
+listen_interface: 127.0.0.1
+listen_port: 8080
+target: http://localhost:5601
+target_path_prefix:
+whitelisted_routes: ^.*
+anonymous_metrics_user: true
 
-RBAC:
-  Groups:
+rbac:
+  groups:
+
     group1:
-      WhitelistedIndices:
-        - .kibana
-        - group1
-      CanManage: true
-    group2:
-      WhitelistedIndices:
-        - .kibana
-        - group2
-      CanManage: false
-  Users:
+      whitelisted_indices:
+        .kibana: {rest_verbs: GET}
+        logstash: {rest_verbs: GET}
+        metrics: {rest_verbs: GET, PUT}
+      can_manage: true
+
+  users:
+
     dustind:
-      WhitelistedIndices:
-        - .kibana
-        - metrics-test
-      CanManage: true
+      whitelisted_indices:
+        .kibana: {rest_verbs: GET}
+        metrics: {rest_verbs: GET}
+      can_manage: false
