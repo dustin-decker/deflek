@@ -110,7 +110,11 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	trace.Elapsed = int(time.Since(start) / time.Millisecond)
-	trace.Code = trans.Response.StatusCode
+	if trans.Response != nil {
+		trace.Code = trans.Response.StatusCode
+	} else {
+		trace.Code = 403
+	}
 
 	p.log.Info(
 		"TRACE",
