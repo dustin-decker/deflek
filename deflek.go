@@ -70,6 +70,8 @@ type AppTrace struct {
 	Elapsed int
 	User    string
 	Groups  []string
+	Query   string
+	Index   []string
 }
 
 // NewProx returns new reverse proxy instance
@@ -124,6 +126,8 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 		"error", trace.Error,
 		"user", trace.User,
 		"groups", trace.Groups,
+		"query", trace.Query,
+		"index", trace.Index,
 	)
 }
 
@@ -164,7 +168,7 @@ func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, err
 	// Check against whitelisted routes
 	for _, regexp := range p.routePatterns {
 		if !regexp.MatchString(path) {
-			err := fmt.Errorf("Not accepted routes %x", r.URL.Path)
+			err = fmt.Errorf("Not accepted routes %x", r.URL.Path)
 			return false, err
 		}
 	}
@@ -191,7 +195,7 @@ func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, err
 		r.Body = rdr2
 		decoder := json.NewDecoder(rdr1)
 		f := SearchReq{}
-		err := decoder.Decode(&f)
+		err = decoder.Decode(&f)
 		if err != nil {
 			return false, err
 		}
@@ -200,6 +204,19 @@ func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, err
 		if err != nil {
 			return false, err
 		}
+
+		// Trace queries
+		if q, ok := f.X["query"]; ok {
+			query, err := json.Marshal(q)
+			if err != nil {
+				return false, err
+			}
+			trace.Query = string(query)
+		}
+
+		// Trace indices
+		trace.Index = f.Index
+
 		// Check if index is is the whitelist
 		for _, index := range f.Index {
 			permitted, err := indexPermitted(index, r, C)
