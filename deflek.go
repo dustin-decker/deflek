@@ -89,8 +89,7 @@ func NewProx(C *Config) *Prox {
 }
 
 type traceTransport struct {
-	Response   *http.Response
-	StatusCode int
+	Response *http.Response
 }
 
 func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +110,7 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	trace.Elapsed = int(time.Since(start) / time.Millisecond)
-	trace.Code = trans.StatusCode
+	trace.Code = trans.Response.StatusCode
 
 	p.log.Info(
 		"TRACE",
