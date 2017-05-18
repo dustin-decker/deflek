@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -66,7 +67,7 @@ type AppTrace struct {
 	Error   string
 	Message string
 	Code    int
-	Elapsed time.Duration
+	Elapsed int
 	User    string
 	Groups  []string
 }
@@ -76,8 +77,8 @@ func NewProx(C *Config) *Prox {
 	url, _ := url.Parse(C.Target)
 
 	logger := log15.New()
-	// logger.SetHandler(log15.MultiHandler(log15.StreamHandler(os.Stderr,
-	// 	log15.JsonFormat())))
+	logger.SetHandler(log15.MultiHandler(log15.StreamHandler(os.Stderr,
+		log15.JsonFormat())))
 
 	return &Prox{
 		config: C,
@@ -109,7 +110,7 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	trace.Elapsed = time.Since(start)
+	trace.Elapsed = int(time.Since(start) / time.Millisecond)
 	trace.Code = trans.StatusCode
 
 	p.log.Info(
