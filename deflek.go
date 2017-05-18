@@ -206,7 +206,7 @@ func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, err
 				return false, err
 			}
 			if !permitted {
-				err = fmt.Errorf("%s not in index whitelist", index)
+				err = fmt.Errorf("%s not in index whitelist", trimIndex(index))
 				return false, err
 			}
 		}
@@ -240,9 +240,14 @@ func getGroups(r *http.Request, C *Config) ([]string, error) {
 	return groups, nil
 }
 
-func indexPermitted(index string, r *http.Request, C *Config) (bool, error) {
+func trimIndex(index string) string {
 	suffix := regexp.MustCompile(`([.a-zA-z0-9]*)-[0-9]{4}\.[0-9]{2}\.[0-9]{2}`)
 	index = suffix.ReplaceAllString(index, "${1}")
+	return index
+}
+
+func indexPermitted(index string, r *http.Request, C *Config) (bool, error) {
+	index = trimIndex(index)
 
 	username, err := getUser(r, C)
 	if err != nil {
