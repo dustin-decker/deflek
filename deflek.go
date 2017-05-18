@@ -117,11 +117,10 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p.log.Info(
-		"TRACE",
+		trace.Message,
 		"code", trace.Code,
 		"path", trace.Path,
 		"elasped", trace.Elapsed,
-		"message", trace.Message,
 		"error", trace.Error,
 		"user", trace.User,
 		"groups", trace.Groups,
