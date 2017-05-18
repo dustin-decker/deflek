@@ -67,6 +67,8 @@ type AppTrace struct {
 	Message string
 	Code    int
 	Elapsed time.Duration
+	User    string
+	Groups  []string
 }
 
 // NewProx returns new reverse proxy instance
@@ -117,6 +119,8 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 		"elasped", trace.Elapsed,
 		"message", trace.Message,
 		"error", trace.Error,
+		"user", trace.User,
+		"groups", trace.Groups,
 	)
 }
 
@@ -143,6 +147,16 @@ func (t *traceTransport) RoundTrip(request *http.Request) (*http.Response, error
 func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, error) {
 	path := strings.TrimPrefix(r.URL.Path, C.TargetPathPrefix)
 	trace.Path = path
+	user, err := getUser(r, C)
+	if err != nil {
+		return false, err
+	}
+	groups, err := getGroups(r, C)
+	if err != nil {
+		return false, err
+	}
+	trace.User = user
+	trace.Groups = groups
 
 	// Check against whitelisted routes
 	for _, regexp := range p.routePatterns {
