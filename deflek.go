@@ -12,7 +12,9 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 
+	"github.com/inconshreveable/log15"
 	"gopkg.in/yaml.v2"
 )
 
@@ -28,6 +30,7 @@ type Prox struct {
 	target        *url.URL
 	proxy         *httputil.ReverseProxy
 	routePatterns []*regexp.Regexp
+	log           log15.Logger
 }
 
 // Config for reverse proxy settings and RBAC users and groups
@@ -56,29 +59,83 @@ type Index struct {
 	RESTverbs []string
 }
 
+// AppTrace - Request error handling wrapper on the handler
+type AppTrace struct {
+	Path    string
+	Error   error
+	Message string
+	Code    int
+	Elapsed time.Duration
+}
+
 // NewProx returns new reverse proxy instance
 func NewProx(C *Config) *Prox {
 	url, _ := url.Parse(C.Target)
 
-	return &Prox{config: C, target: url, proxy: httputil.NewSingleHostReverseProxy(url)}
-}
+	logger := log15.New()
+	// logger.SetHandler(log15.MultiHandler(log15.StreamHandler(os.Stderr,
+	// 	log15.JsonFormat())))
 
-func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
-
-	if p.checkWhiteLists(r, p.config) {
-		p.proxy.ServeHTTP(w, r)
+	return &Prox{
+		config: C,
+		target: url,
+		proxy:  httputil.NewSingleHostReverseProxy(url),
+		log:    logger,
 	}
 }
 
-func (p *Prox) checkWhiteLists(r *http.Request, C *Config) bool {
+type traceTransport struct {
+	// CapturedTransport http.RoundTripper
+	ResponseBody []byte
+	StatusCode   int
+}
+
+func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	trace := AppTrace{}
+
+	isValid, _ := p.checkRBAC(r, p.config, &trace)
+
+	trans := traceTransport{}
+	p.proxy.Transport = &trans
+	if isValid {
+		p.proxy.ServeHTTP(w, r)
+	}
+
+	trace.Elapsed = time.Since(start)
+	trace.Code = trans.StatusCode
+
+	p.log.Info("TRACE",
+		"code", trace.Code,
+		"path", trace.Path,
+		"elasped", trace.Elapsed)
+}
+
+func (t *traceTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+
+	response, _ := http.DefaultTransport.RoundTrip(request)
+	// or, if you captured the transport
+	// response, _ := t.CapturedTransport.RoundTrip(request)
+	body, err := httputil.DumpResponse(response, true)
+	if err != nil {
+		return response, err
+	}
+	t.ResponseBody = body
+	t.StatusCode = response.StatusCode
+
+	return response, err
+}
+
+func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, error) {
 	path := strings.TrimPrefix(r.URL.Path, C.TargetPathPrefix)
+	trace.Path = path
 
 	// Check against whitelisted routes
 	for _, regexp := range p.routePatterns {
 		fmt.Println(r.URL.Path)
 		if !regexp.MatchString(path) {
-			fmt.Printf("Not accepted routes %x", r.URL.Path)
-			return false
+			err := fmt.Errorf("Not accepted routes %x", r.URL.Path)
+			return false, err
 		}
 	}
 
@@ -106,28 +163,28 @@ func (p *Prox) checkWhiteLists(r *http.Request, C *Config) bool {
 		f := SearchReq{}
 		err := decoder.Decode(&f)
 		if err != nil {
-			return false
+			return false, err
 		}
 		// add the rest of the fields
 		err = decoder.Decode(&f.X)
 		if err != nil {
-			return false
+			return false, err
 		}
 		// Check if index is is the whitelist
 		for _, index := range f.Index {
 			permitted, err := indexPermitted(index, r, C)
 			if err != nil {
 				fmt.Println(err.Error())
-				return false
+				return false, err
 			}
 			if !permitted {
 				fmt.Printf("%s not in index whitelist", index)
-				return false
+				return false, err
 			}
 		}
 	}
 
-	return true
+	return true, nil
 }
 
 func getUser(r *http.Request, C *Config) (string, error) {
