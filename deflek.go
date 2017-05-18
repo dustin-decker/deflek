@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -161,7 +160,6 @@ func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, err
 
 	// Check against whitelisted routes
 	for _, regexp := range p.routePatterns {
-		fmt.Println(r.URL.Path)
 		if !regexp.MatchString(path) {
 			err := fmt.Errorf("Not accepted routes %x", r.URL.Path)
 			return false, err
@@ -277,11 +275,11 @@ func (C *Config) getConf() *Config {
 	pwd, _ := os.Getwd()
 	yamlFile, err := ioutil.ReadFile(path.Join(pwd, "config.yaml"))
 	if err != nil {
-		log.Printf("yamlFile.Get err   #%v ", err)
+		log15.Error("yamlFile.Get err   #%v ", err)
 	}
 	err = yaml.Unmarshal(yamlFile, C)
 	if err != nil {
-		log.Fatalf("Unmarshal: %v", err)
+		log15.Error("Unmarshal: %v", err)
 	}
 
 	return C
@@ -293,7 +291,7 @@ func main() {
 
 	reg, err := regexp.Compile(C.WhitelistedRoutes)
 	if err != nil {
-		panic(fmt.Errorf("Error compiling whitelistedRoutes regex: %s", err))
+		log15.Error("Error compiling whitelistedRoutes regex: %s", err)
 	}
 	routes := []*regexp.Regexp{reg}
 
