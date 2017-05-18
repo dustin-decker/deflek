@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -62,7 +63,7 @@ type Index struct {
 // AppTrace - Request error handling wrapper on the handler
 type AppTrace struct {
 	Path    string
-	Error   error
+	Error   string
 	Message string
 	Code    int
 	Elapsed time.Duration
@@ -85,45 +86,58 @@ func NewProx(C *Config) *Prox {
 }
 
 type traceTransport struct {
-	// CapturedTransport http.RoundTripper
-	ResponseBody []byte
-	StatusCode   int
+	Response   *http.Response
+	StatusCode int
 }
 
 func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	trace := AppTrace{}
-
-	isValid, _ := p.checkRBAC(r, p.config, &trace)
-
 	trans := traceTransport{}
 	p.proxy.Transport = &trans
-	if isValid {
+
+	_, err := p.checkRBAC(r, p.config, &trace)
+	if err != nil {
+		trace.Message = err.Error()
+	} else {
 		p.proxy.ServeHTTP(w, r)
+		body, err := httputil.DumpResponse(trans.Response, true)
+		if err != nil {
+			trace.Message = string(body)
+		}
 	}
 
 	trace.Elapsed = time.Since(start)
 	trace.Code = trans.StatusCode
 
-	p.log.Info("TRACE",
+	p.log.Info(
+		"TRACE",
 		"code", trace.Code,
 		"path", trace.Path,
-		"elasped", trace.Elapsed)
+		"elasped", trace.Elapsed,
+		"message", trace.Message,
+		"error", trace.Error,
+	)
 }
 
 func (t *traceTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	res, _ := http.DefaultTransport.RoundTrip(request)
 
-	response, _ := http.DefaultTransport.RoundTrip(request)
-	// or, if you captured the transport
-	// response, _ := t.CapturedTransport.RoundTrip(request)
-	body, err := httputil.DumpResponse(response, true)
-	if err != nil {
-		return response, err
+	if res.Header.Get("Content-Encoding") == "gzip" {
+		body, err := gzip.NewReader(res.Body)
+		if err != nil {
+			fmt.Println("error")
+		}
+		res.Body = body
+		res.Header.Del("Content-Encoding")
+		res.Header.Del("Content-Length")
+		res.ContentLength = -1
+		res.Uncompressed = true
 	}
-	t.ResponseBody = body
-	t.StatusCode = response.StatusCode
 
-	return response, err
+	t.Response = res
+
+	return res, nil
 }
 
 func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, error) {
@@ -174,11 +188,10 @@ func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, err
 		for _, index := range f.Index {
 			permitted, err := indexPermitted(index, r, C)
 			if err != nil {
-				fmt.Println(err.Error())
 				return false, err
 			}
 			if !permitted {
-				fmt.Printf("%s not in index whitelist", index)
+				err = fmt.Errorf("%s not in index whitelist", index)
 				return false, err
 			}
 		}
