@@ -6,6 +6,7 @@ RUN govend -v
 RUN go install
 RUN rm -rf /go/src/github.com/sevoma/deflEK
 COPY config.yaml /
+WORKDIR /
 #RUN adduser -D -u 59999 -s /usr/sbin/nologin user
 #USER 59999
 CMD ["deflEK"]
