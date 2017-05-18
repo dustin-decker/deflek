@@ -12,6 +12,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 	"time"
@@ -273,7 +274,8 @@ func indexPermitted(index string, r *http.Request, C *Config) (bool, error) {
 
 func (C *Config) getConf() *Config {
 
-	yamlFile, err := ioutil.ReadFile("config.yaml")
+	pwd, _ := os.Getwd()
+	yamlFile, err := ioutil.ReadFile(path.Join(pwd, "config.yaml"))
 	if err != nil {
 		log.Printf("yamlFile.Get err   #%v ", err)
 	}
