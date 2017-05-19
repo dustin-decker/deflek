@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -38,13 +37,13 @@ type Prox struct {
 // Config for reverse proxy settings and RBAC users and groups
 // Unmarshalled from config on disk
 type Config struct {
-	ListenInterface      string `yaml:"listen_interface"`
-	ListenPort           int    `yaml:"listen_port"`
-	Target               string
-	TargetPathPrefix     string `yaml:"target_path_prefix"`
-	WhitelistedRoutes    string `yaml:"whitelisted_routes"`
-	AnonymousMetricsUser bool   `yaml:"anonymous_metrics_user"`
-	RBAC                 struct {
+	ListenInterface   string `yaml:"listen_interface"`
+	ListenPort        int    `yaml:"listen_port"`
+	Target            string
+	TargetPathPrefix  string `yaml:"target_path_prefix"`
+	WhitelistedRoutes string `yaml:"whitelisted_routes"`
+	AnonymousGroup    string `yaml:"anonymous_group"`
+	RBAC              struct {
 		Groups map[string]Permissions
 		Users  map[string]Permissions
 	}
@@ -277,13 +276,8 @@ func getUser(r *http.Request, C *Config) (string, error) {
 	var username string
 	if _, ok := r.Header["Username"]; ok {
 		username = r.Header["Username"][0]
-	} else {
-		if C.AnonymousMetricsUser {
-			username = "metrics"
-		} else {
-			return "", errors.New(("No Username header provided"))
-		}
 	}
+
 	return username, nil
 }
 
@@ -292,6 +286,8 @@ func getGroups(r *http.Request, C *Config) ([]string, error) {
 	var groups []string
 	if _, ok := r.Header["Groups"]; ok {
 		groups = r.Header["Groups"]
+	} else {
+		groups = []string{C.AnonymousGroup}
 	}
 
 	return groups, nil

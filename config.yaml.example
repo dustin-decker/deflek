@@ -3,7 +3,7 @@ listen_port: 8080
 target: http://localhost:5601
 target_path_prefix:
 whitelisted_routes: ^.*
-anonymous_metrics_user: true
+anonymous_group: group1
 
 rbac:
   groups:
