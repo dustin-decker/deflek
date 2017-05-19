@@ -46,7 +46,6 @@ type Config struct {
 	AnonymousGroup    string `yaml:"anonymous_group"`
 	RBAC              struct {
 		Groups map[string]Permissions
-		Users  map[string]Permissions
 	}
 }
 
@@ -242,10 +241,6 @@ func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, err
 }
 
 func canManage(r *http.Request, C *Config) (bool, error) {
-	username, err := getUser(r, C)
-	if err != nil {
-		return false, err
-	}
 	groups, _ := getGroups(r, C)
 
 	// Can any of the groups manage?
@@ -254,13 +249,6 @@ func canManage(r *http.Request, C *Config) (bool, error) {
 			if configGroup.CanManage == true {
 				return true, nil
 			}
-		}
-	}
-
-	// Can the user manage?
-	if configUser, ok := C.RBAC.Users[username]; ok {
-		if configUser.CanManage == true {
-			return true, nil
 		}
 	}
 
@@ -291,10 +279,6 @@ func getGroups(r *http.Request, C *Config) ([]string, error) {
 
 func indexPermitted(index string, r *http.Request, C *Config) (bool, error) {
 
-	username, err := getUser(r, C)
-	if err != nil {
-		return false, err
-	}
 	groups, _ := getGroups(r, C)
 
 	for _, group := range groups {
@@ -304,12 +288,6 @@ func indexPermitted(index string, r *http.Request, C *Config) (bool, error) {
 					return true, nil
 				}
 			}
-		}
-	}
-
-	if configUser, ok := C.RBAC.Users[username]; ok {
-		if _, ok := configUser.WhitelistedIndices[index]; ok {
-			return true, nil
 		}
 	}
 

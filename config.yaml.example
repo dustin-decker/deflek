@@ -11,14 +11,6 @@ rbac:
     group1:
       whitelisted_indices:
         .kibana: {rest_verbs: GET}
-        logstash: {rest_verbs: GET}
-        metrics: {rest_verbs: GET, PUT}
+        logstash-*: {rest_verbs: GET}
+        metrics-*: {rest_verbs: GET, PUT}
       can_manage: true
-
-  users:
-
-    dustind:
-      whitelisted_indices:
-        .kibana: {rest_verbs: GET}
-        metrics: {rest_verbs: GET}
-      can_manage: false
