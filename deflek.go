@@ -126,7 +126,6 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 			"index", trace.Index,
 		)
 	} else {
-
 		p.log.Info(
 			trace.Message,
 			"code", trace.Code,
@@ -182,16 +181,21 @@ func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, err
 		}
 	}
 
-	// // Control index pattern access
-	// if !permissions.CanManage && strings.HasPrefix(path, "/elasticsearch/.kibana/index-pattern") && !strings.HasPrefix(path, "/elasticsearch/.kibana/index-pattern/_search") {
-	// 	fmt.Printf("Cannot manage %s", r.URL.Path)
-	// 	return false
-	// }
-	// // Control api console access
-	// if !permissions.CanManage && strings.HasPrefix(path, "/api/console") {
-	// 	fmt.Printf("Cannot manage %s", r.URL.Path)
-	// 	return false
-	// }
+	// Control index pattern access
+	canManage, err := canManage(r, C)
+	if err != nil {
+		return false, err
+	}
+
+	if !canManage && strings.HasPrefix(path, "/elasticsearch/.kibana/index-pattern") && !strings.HasPrefix(path, "/elasticsearch/.kibana/index-pattern/_search") {
+		err = fmt.Errorf("Cannot manage %s", r.URL.Path)
+		return false, err
+	}
+	// Control api console access
+	if !canManage && strings.HasPrefix(path, "/api/console") {
+		err = fmt.Errorf("Cannot manage %s", r.URL.Path)
+		return false, err
+	}
 
 	// Check Kibana queries against whitelisted indices
 	if strings.HasPrefix(path, "/elasticsearch/_msearch") {
@@ -242,6 +246,32 @@ func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, err
 	return true, nil
 }
 
+func canManage(r *http.Request, C *Config) (bool, error) {
+	username, err := getUser(r, C)
+	if err != nil {
+		return false, err
+	}
+	groups, _ := getGroups(r, C)
+
+	// Can any of the groups manage?
+	for _, group := range groups {
+		if configGroup, ok := C.RBAC.Groups[group]; ok {
+			if configGroup.CanManage == true {
+				return true, nil
+			}
+		}
+	}
+
+	// Can the user manage?
+	if configUser, ok := C.RBAC.Users[username]; ok {
+		if configUser.CanManage == true {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 func getUser(r *http.Request, C *Config) (string, error) {
 	// Username is trusted input provided by a SSO proxy layer
 	var username string
@@ -278,7 +308,7 @@ func indexPermitted(index string, r *http.Request, C *Config) (bool, error) {
 
 	username, err := getUser(r, C)
 	if err != nil {
-		return false, errors.New("No username provided")
+		return false, err
 	}
 	groups, _ := getGroups(r, C)
 
