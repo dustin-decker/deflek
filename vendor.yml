@@ -1,6 +1,4 @@
 vendors:
-- path: github.com/davecgh/go-spew
-  rev: 346938d642f2ec3594ed81d874461961cd0faa76
 - path: github.com/go-stack/stack
   rev: 7a2f19628aabfe68f0766b59e74d6315f8347d22
 - path: github.com/inconshreveable/log15
@@ -9,6 +7,8 @@ vendors:
   rev: ded68f7a9561c023e790de24279db7ebf473ea80
 - path: github.com/mattn/go-isatty
   rev: fc9e8d8ef48496124e79ae0df75490096eccf6fe
+- path: github.com/ryanuber/go-glob
+  rev: 256dc444b735e061061cf46c809487313d5b0065
 - path: golang.org/x/sys
   rev: f845067cf72a21fb4929b0e6a35273bd83b56396
 - path: gopkg.in/check.v1

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
+	glob "github.com/ryanuber/go-glob"
 	"gopkg.in/yaml.v2"
 )
 
@@ -175,12 +176,12 @@ func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, err
 		}
 	}
 
-	// Control index pattern access
 	canManage, err := canManage(r, C)
 	if err != nil {
 		return false, err
 	}
 
+	// Control index pattern access
 	if !canManage && strings.HasPrefix(path, "/elasticsearch/.kibana/index-pattern") && !strings.HasPrefix(path, "/elasticsearch/.kibana/index-pattern/_search") {
 		err = fmt.Errorf("Cannot manage %s", r.URL.Path)
 		return false, err
@@ -231,7 +232,7 @@ func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, err
 				return false, err
 			}
 			if !permitted {
-				err = fmt.Errorf("%s not in index whitelist", trimIndex(index))
+				err = fmt.Errorf("%s not in index whitelist", index)
 				return false, err
 			}
 		}
@@ -288,14 +289,7 @@ func getGroups(r *http.Request, C *Config) ([]string, error) {
 	return groups, nil
 }
 
-func trimIndex(index string) string {
-	suffix := regexp.MustCompile(`([.a-zA-z0-9]*)-[0-9]{4}\.[0-9]{2}\.[0-9]{2}`)
-	index = suffix.ReplaceAllString(index, "${1}")
-	return index
-}
-
 func indexPermitted(index string, r *http.Request, C *Config) (bool, error) {
-	index = trimIndex(index)
 
 	username, err := getUser(r, C)
 	if err != nil {
@@ -305,8 +299,10 @@ func indexPermitted(index string, r *http.Request, C *Config) (bool, error) {
 
 	for _, group := range groups {
 		if configGroup, ok := C.RBAC.Groups[group]; ok {
-			if _, ok := configGroup.WhitelistedIndices[index]; ok {
-				return true, nil
+			for configIndex := range configGroup.WhitelistedIndices {
+				if glob.Glob(configIndex, index) {
+					return true, nil
+				}
 			}
 		}
 	}
