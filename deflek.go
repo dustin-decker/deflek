@@ -113,28 +113,20 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 		trace.Code = 403
 	}
 
+	fields := log15.Ctx{
+		"code":    trace.Code,
+		"path":    trace.Path,
+		"elasped": trace.Elapsed,
+		"user":    trace.User,
+		"groups":  trace.Groups,
+		"query":   trace.Query,
+		"index":   trace.Index,
+	}
+
 	if err != nil {
-		p.log.Error(
-			trace.Message,
-			"code", trace.Code,
-			"path", trace.Path,
-			"elasped", trace.Elapsed,
-			"user", trace.User,
-			"groups", trace.Groups,
-			"query", trace.Query,
-			"index", trace.Index,
-		)
+		p.log.Error(trace.Message, fields)
 	} else {
-		p.log.Info(
-			trace.Message,
-			"code", trace.Code,
-			"path", trace.Path,
-			"elasped", trace.Elapsed,
-			"user", trace.User,
-			"groups", trace.Groups,
-			"query", trace.Query,
-			"index", trace.Index,
-		)
+		p.log.Info(trace.Message, fields)
 	}
 }
 
