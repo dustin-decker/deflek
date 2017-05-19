@@ -8,9 +8,12 @@ It currently requires fronting with a SSO authentication proxy to pass Username 
 
 Features:
 - RBAC on indicies that can be queries in Kibana
+- RBAC on Kibana index patterns settings and api console
+- Query traces - audit log, execution time, query body, index, user, groups
+- Request traces - audit log execution time, errors, messages, user, groups
+- JSON logging ready for indexing
 
 Desired Features:
 - Kibana feature toggles (index pattern management, console, etc)
 - whitelist REST verbs and indices for Elasticsearch requests
-- query traces - audit log, execution time (using log15 JSON)
-- request traces - audit log, execution time (using log15 JSON)
+- Elasticsearch support
