@@ -105,10 +105,6 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 		trace.Message = err.Error()
 	} else {
 		p.proxy.ServeHTTP(w, r)
-		body, err := httputil.DumpResponse(trans.Response, true)
-		if err != nil {
-			trace.Message = string(body)
-		}
 	}
 
 	trace.Elapsed = int(time.Since(start) / time.Millisecond)
@@ -118,17 +114,30 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 		trace.Code = 403
 	}
 
-	p.log.Info(
-		trace.Message,
-		"code", trace.Code,
-		"path", trace.Path,
-		"elasped", trace.Elapsed,
-		"error", trace.Error,
-		"user", trace.User,
-		"groups", trace.Groups,
-		"query", trace.Query,
-		"index", trace.Index,
-	)
+	if err != nil {
+		p.log.Error(
+			trace.Message,
+			"code", trace.Code,
+			"path", trace.Path,
+			"elasped", trace.Elapsed,
+			"user", trace.User,
+			"groups", trace.Groups,
+			"query", trace.Query,
+			"index", trace.Index,
+		)
+	} else {
+
+		p.log.Info(
+			trace.Message,
+			"code", trace.Code,
+			"path", trace.Path,
+			"elasped", trace.Elapsed,
+			"user", trace.User,
+			"groups", trace.Groups,
+			"query", trace.Query,
+			"index", trace.Index,
+		)
+	}
 }
 
 func (t *traceTransport) RoundTrip(request *http.Request) (*http.Response, error) {
