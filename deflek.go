@@ -131,12 +131,15 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *traceTransport) RoundTrip(request *http.Request) (*http.Response, error) {
-	res, _ := http.DefaultTransport.RoundTrip(request)
+	res, err := http.DefaultTransport.RoundTrip(request)
+	if err != nil {
+		return res, err
+	}
 
 	if res.Header.Get("Content-Encoding") == "gzip" {
 		body, err := gzip.NewReader(res.Body)
 		if err != nil {
-			fmt.Println("error")
+			return res, err
 		}
 		res.Body = body
 		res.Header.Del("Content-Encoding")
