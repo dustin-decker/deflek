@@ -44,6 +44,9 @@ type Config struct {
 	TargetPathPrefix  string `yaml:"target_path_prefix"`
 	WhitelistedRoutes string `yaml:"whitelisted_routes"`
 	AnonymousGroup    string `yaml:"anonymous_group"`
+	GroupHeaderName   string `yaml:"group_header_name"`
+	GroupHeaderType   string `yaml:"group_header_type"`
+	UserHeaderName    string `yaml:"user_header_name"`
 	RBAC              struct {
 		Groups map[string]Permissions
 	}
@@ -258,8 +261,8 @@ func canManage(r *http.Request, C *Config) (bool, error) {
 func getUser(r *http.Request, C *Config) (string, error) {
 	// Username is trusted input provided by a SSO proxy layer
 	var username string
-	if _, ok := r.Header["Username"]; ok {
-		username = r.Header["Username"][0]
+	if _, ok := r.Header[C.UserHeaderName]; ok {
+		username = r.Header[C.UserHeaderName][0]
 	}
 
 	return username, nil
@@ -267,14 +270,31 @@ func getUser(r *http.Request, C *Config) (string, error) {
 
 func getGroups(r *http.Request, C *Config) ([]string, error) {
 	// Group is trusted input provided by a SSO proxy layer
-	var groups []string
-	if _, ok := r.Header["Groups"]; ok {
-		groups = r.Header["Groups"]
-	} else {
-		groups = []string{C.AnonymousGroup}
+	if _, ok := r.Header[C.GroupHeaderName]; ok {
+		rawGroups := r.Header[C.GroupHeaderName][0]
+		switch groupType := C.GroupHeaderType; groupType {
+		case "AD":
+			groups := getAdGroups(rawGroups)
+			return groups, nil
+		default:
+			groups := []string{C.AnonymousGroup}
+			return groups, nil
+		}
 	}
-
+	groups := []string{C.AnonymousGroup}
 	return groups, nil
+}
+
+func getAdGroups(rawGroups string) []string {
+	var groups []string
+	splitKV := strings.Split(rawGroups, ",")
+	for _, kv := range splitKV {
+		if strings.HasPrefix(kv, "CN=") {
+			newGroup := strings.ToLower(strings.TrimLeft(kv, "CN="))
+			groups = append(groups, newGroup)
+		}
+	}
+	return groups
 }
 
 func indexPermitted(index string, r *http.Request, C *Config) (bool, error) {

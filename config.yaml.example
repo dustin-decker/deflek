@@ -4,6 +4,9 @@ target: http://localhost:5601
 target_path_prefix:
 whitelisted_routes: ^.*
 anonymous_group: group1
+group_header_name: X-Saml-Memberof
+group_header_type: AD
+user_header_name: X-Saml-Username
 
 rbac:
   groups:
