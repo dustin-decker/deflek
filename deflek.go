@@ -289,9 +289,12 @@ func getAdGroups(rawGroups string) []string {
 	var groups []string
 	splitKV := strings.Split(rawGroups, ",")
 	for _, kv := range splitKV {
-		if strings.HasPrefix(kv, "CN=") {
-			newGroup := strings.ToLower(strings.TrimLeft(kv, "CN="))
-			groups = append(groups, newGroup)
+		splitSemiColins := strings.Split(kv, ";")
+		for _, kv2 := range splitSemiColins {
+			if strings.HasPrefix(kv2, "CN=") {
+				newGroup := strings.ToLower(strings.TrimLeft(kv2, "CN="))
+				groups = append(groups, newGroup)
+			}
 		}
 	}
 	return groups
