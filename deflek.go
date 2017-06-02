@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -22,7 +23,7 @@ import (
 
 // SearchReq unmarshalls index field from Kibana json request
 type SearchReq struct {
-	Index []string               `json:"index"`
+	Index interface{}            `json:"index"`
 	X     map[string]interface{} `json:"-"` // Rest of the fields should go here.
 }
 
@@ -225,10 +226,24 @@ func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, err
 		}
 
 		// Trace indices
-		trace.Index = f.Index
+		var indices []string
+		switch jv := f.Index.(type) {
+		// Kibana 4 uses index string
+		case string:
+			indices = []string{jv}
+		// Kibana 5 uses JSON array of indices
+		case []interface{}:
+			// indices = make([]string, len(jv))
+			for _, v := range jv {
+				indices = append(indices, v.(string))
+			}
+		default:
+			return false, fmt.Errorf("Unknown type %v returned for json field 'index'", reflect.TypeOf(f.Index))
+		}
+		trace.Index = indices
 
 		// Check if index is is the whitelist
-		for _, index := range f.Index {
+		for _, index := range indices {
 			permitted, err := indexPermitted(index, r, C)
 			if err != nil {
 				return false, err
