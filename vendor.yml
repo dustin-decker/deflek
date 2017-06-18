@@ -11,7 +11,5 @@ vendors:
   rev: 256dc444b735e061061cf46c809487313d5b0065
 - path: golang.org/x/sys
   rev: f845067cf72a21fb4929b0e6a35273bd83b56396
-- path: gopkg.in/check.v1
-  rev: 20d25e2804050c1cd24a7eea1e7a6447dd0e74ec
 - path: gopkg.in/yaml.v2
   rev: cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b

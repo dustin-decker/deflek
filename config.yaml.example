@@ -1,19 +1,30 @@
 listen_interface: 127.0.0.1
 listen_port: 8080
-target: http://localhost:5601
+target: http://elasticsearch:9200
 target_path_prefix:
-whitelisted_routes: ^.*
 anonymous_group: group1
-group_header_name: X-Saml-Memberof
+group_header_name: X-Saml-Groups
 group_header_type: AD
 user_header_name: X-Saml-Username
 
 rbac:
   groups:
-
     group1:
       whitelisted_indices:
-        .kibana: {rest_verbs: GET}
-        logstash-*: {rest_verbs: GET}
-        metrics-*: {rest_verbs: GET, PUT}
+        - name: .kibana
+          rest_verbs:
+          - GET
+          - POST
+      can_manage: false
+
+    group2:
+      whitelisted_indices:
+        - name: .kibana
+          rest_verbs:
+          - GET
+          - POST
+        - name: data
+          rest_verbs:
+          - GET
+          - POST
       can_manage: true

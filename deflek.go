@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -18,10 +19,10 @@ import (
 
 	"github.com/inconshreveable/log15"
 	glob "github.com/ryanuber/go-glob"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
-// SearchReq unmarshalls index field from Kibana json request
+// SearchReq unmarshalls index field from Elasticsearch multi-search API request json body
 type SearchReq struct {
 	Index interface{}            `json:"index"`
 	X     map[string]interface{} `json:"-"` // Rest of the fields should go here.
@@ -55,18 +56,20 @@ type Config struct {
 
 // Permissions structure for groups and users
 type Permissions struct {
-	WhitelistedIndices map[string]Index `yaml:"whitelisted_indices"`
-	CanManage          bool             `yaml:"can_manage"`
+	WhitelistedIndices []Index `yaml:"whitelisted_indices"`
+	CanManage          bool    `yaml:"can_manage"`
 }
 
 // Index struct defines index and REST verbs allowed
 type Index struct {
-	RESTverbs []string
+	Name      string
+	RESTverbs []string `yaml:"rest_verbs"`
 }
 
 // AppTrace - Request error handling wrapper on the handler
 type AppTrace struct {
 	Path    string
+	Method  string
 	Error   string
 	Message string
 	Code    int
@@ -105,7 +108,7 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 
 	_, err := p.checkRBAC(r, p.config, &trace)
 	if err != nil {
-		trace.Message = err.Error()
+		trace.Error = err.Error()
 	} else {
 		p.proxy.ServeHTTP(w, r)
 	}
@@ -117,8 +120,15 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 		trace.Code = 403
 	}
 
+	trace.Method = r.Method
+
+	if isKibanaHealthcheckSpam(&trace) {
+		return
+	}
+
 	fields := log15.Ctx{
 		"code":    trace.Code,
+		"method":  trace.Method,
 		"path":    trace.Path,
 		"elasped": trace.Elapsed,
 		"user":    trace.User,
@@ -128,10 +138,35 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		p.log.Error(trace.Message, fields)
+		p.log.Error(trace.Error, fields)
 	} else {
 		p.log.Info(trace.Message, fields)
 	}
+}
+
+func isKibanaHealthcheckSpam(t *AppTrace) bool {
+	traceIgnorePathsGET := []string{
+		"/_nodes/_local",
+		"/_nodes",
+		"/_xpack",
+		"/_cluster/health/.kibana",
+	}
+	for _, path := range traceIgnorePathsGET {
+		if t.Method == "GET" && t.Path == path {
+			return true
+		}
+	}
+	if t.Method == "HEAD" {
+		return true
+	}
+	if t.Path == "/_mget" && t.Query == "{\"docs\":[{\"_index\":\".kibana\",\"_type\":\"config\",\"_id\":\"5.4.1\"}]}" {
+		return true
+	}
+	if t.Path == "/.kibana/config/_search" && t.Query == "{\"size\":1000,\"sort\":[{\"buildNum\":{\"order\":\"desc\",\"unmapped_type\":\"string\"}}]}" {
+		return true
+	}
+
+	return false
 }
 
 func (t *traceTransport) RoundTrip(request *http.Request) (*http.Response, error) {
@@ -171,12 +206,9 @@ func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, err
 	trace.User = user
 	trace.Groups = groups
 
-	// Check against whitelisted routes
-	for _, regexp := range p.routePatterns {
-		if !regexp.MatchString(path) {
-			err = fmt.Errorf("Not accepted routes %x", r.URL.Path)
-			return false, err
-		}
+	ok, err := indexPermitted(trace, r, C)
+	if err != nil || !ok {
+		return false, err
 	}
 
 	canManage, err := canManage(r, C)
@@ -184,75 +216,15 @@ func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, err
 		return false, err
 	}
 
-	// Control index pattern access
+	// Control Kibana index pattern access
 	if !canManage && strings.HasPrefix(path, "/elasticsearch/.kibana/index-pattern") && !strings.HasPrefix(path, "/elasticsearch/.kibana/index-pattern/_search") {
 		err = fmt.Errorf("Cannot manage %s", r.URL.Path)
 		return false, err
 	}
-	// Control api console access
+	// Control Kibana's Dev API console access
 	if !canManage && strings.HasPrefix(path, "/api/console") {
 		err = fmt.Errorf("Cannot manage %s", r.URL.Path)
 		return false, err
-	}
-
-	// Check Kibana queries against whitelisted indices
-	if strings.HasPrefix(path, "/elasticsearch/_msearch") {
-
-		buf, _ := ioutil.ReadAll(r.Body)
-		rdr1 := ioutil.NopCloser(bytes.NewBuffer(buf))
-		// If we don't keep a second reader untouched, we will consume
-		// the request body when reading it
-		rdr2 := ioutil.NopCloser(bytes.NewBuffer(buf))
-		r.Body = rdr2
-		decoder := json.NewDecoder(rdr1)
-		f := SearchReq{}
-		err = decoder.Decode(&f)
-		if err != nil {
-			return false, err
-		}
-		// add the rest of the fields
-		err = decoder.Decode(&f.X)
-		if err != nil {
-			return false, err
-		}
-
-		// Trace queries
-		if q, ok := f.X["query"]; ok {
-			query, err := json.Marshal(q)
-			if err != nil {
-				return false, err
-			}
-			trace.Query = string(query)
-		}
-
-		// Trace indices
-		var indices []string
-		switch jv := f.Index.(type) {
-		// Kibana 4 uses index string
-		case string:
-			indices = []string{jv}
-		// Kibana 5 uses JSON array of indices
-		case []interface{}:
-			// indices = make([]string, len(jv))
-			for _, v := range jv {
-				indices = append(indices, v.(string))
-			}
-		default:
-			return false, fmt.Errorf("Unknown type %v returned for json field 'index'", reflect.TypeOf(f.Index))
-		}
-		trace.Index = indices
-
-		// Check if index is is the whitelist
-		for _, index := range indices {
-			permitted, err := indexPermitted(index, r, C)
-			if err != nil {
-				return false, err
-			}
-			if !permitted {
-				err = fmt.Errorf("%s not in index whitelist", index)
-				return false, err
-			}
-		}
 	}
 
 	return true, nil
@@ -315,21 +287,163 @@ func getAdGroups(rawGroups string) []string {
 	return groups
 }
 
-func indexPermitted(index string, r *http.Request, C *Config) (bool, error) {
-
-	groups, _ := getGroups(r, C)
+func getWhitelistedIndices(r *http.Request, C *Config) ([]Index, error) {
+	var indices []Index
+	groups, err := getGroups(r, C)
+	if err != nil {
+		return indices, err
+	}
 
 	for _, group := range groups {
 		if configGroup, ok := C.RBAC.Groups[group]; ok {
-			for configIndex := range configGroup.WhitelistedIndices {
-				if glob.Glob(configIndex, index) {
+			for _, configIndex := range configGroup.WhitelistedIndices {
+				indices = append(indices, configIndex)
+			}
+		}
+	}
+
+	return indices, nil
+}
+
+func indexPermitted(trace *AppTrace, r *http.Request, C *Config) (bool, error) {
+	path := strings.TrimPrefix(r.URL.Path, C.TargetPathPrefix)
+	index := strings.Split(path, "/")[1]
+
+	if index == "_all" || index == "_search" {
+		return false, errors.New("Searching all indices is not permitted")
+	}
+
+	whitelistedIndices, err := getWhitelistedIndices(r, C)
+	if err != nil {
+		return false, err
+	}
+
+	if index == "_msearch" {
+		body, err := getBody(r)
+		if err != nil {
+			return false, err
+		}
+		trace.Query = string(body)
+
+		// They're sending newline deliminated JSON blobs :/
+		// Savages.
+		firstRoot := bytes.Split(body, []byte("\n"))[0]
+
+		f := SearchReq{}
+		err = json.Unmarshal(firstRoot, &f)
+		if err != nil {
+			return false, err
+		}
+		err = json.Unmarshal(firstRoot, &f.X)
+		if err != nil {
+			return false, err
+		}
+
+		// Trace indices
+		var indices []string
+		switch jv := f.Index.(type) {
+		// ES 2.X uses index string
+		case string:
+			indices = []string{jv}
+		// ES 5 uses JSON array of indices
+		case []interface{}:
+			for _, v := range jv {
+				indices = append(indices, v.(string))
+			}
+		default:
+			return false, fmt.Errorf("Unknown type %v returned for json field 'index'",
+				reflect.TypeOf(f.Index))
+		}
+		trace.Index = indices
+
+		// Check if index is is the whitelist
+		for _, index := range indices {
+			permitted, err := indexBodyPermitted(index, r, C)
+			if err != nil {
+				return false, err
+			}
+			if !permitted {
+				err = fmt.Errorf("%s not in index whitelist", index)
+				return false, err
+			}
+		}
+	}
+
+	// TODO: _mget still needs index RBAC enforced
+	if index == "_mget" {
+		body, _ := getBody(r)
+		trace.Query = string(body)
+	}
+
+	// Index API endpoints begin with the index name
+	// Other API endpoints begin with '_'
+	if !strings.HasPrefix(index, "_") && len(index) > 0 {
+		trace.Index = []string{index}
+		if r.Method == "POST" {
+			body, err := getBody(r)
+			if err != nil {
+				return false, err
+			}
+			trace.Query = string(body)
+		}
+
+		// req'd by Visual Builder
+		if path == "/*/_field_stats" {
+			return true, nil
+		}
+
+		// TODO for Visual Builder
+		// Replace * with all indices they have access to... :(
+		//  {"code":403,"elasped":0,"groups":"[group2]","index":"[*]","lvl":"eror","method":"POST","msg":"* not in index whitelist","path":"/_msearch","query":"{\"index\":[\"*\"],\"ignore\":[404],\"timeout\":\"90s\",\"requestTimeout\":90000,\"ignoreUnavailable\":true}\n{\"size\":0,\"query\":{\"bool\":{\"must\":[{\"range\":{\"@timestamp\":{\"gte\":1339990677678,\"lte\":1497152277679,\"format\":\"epoch_millis\"}}},{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"*\"}}],\"must_not\":[]}}]}},\"aggs\":{\"ec3c3e41-53d5-11e7-80ea-7bfec2933998\":{\"filter\":{\"match_all\":{}},\"aggs\":{\"timeseries\":{\"date_histogram\":{\"field\":\"@timestamp\",\"interval\":\"604800s\",\"min_doc_count\":0,\"extended_bounds\":{\"min\":1339990677678,\"max\":1497152277679}},\"aggs\":{\"ec3c3e42-53d5-11e7-80ea-7bfec2933998\":{\"bucket_script\":{\"buckets_path\":{\"count\":\"_count\"},\"script\":{\"inline\":\"count * 1\",\"lang\":\"expression\"},\"gap_policy\":\"skip\"}}}}}}}}\n","t":"2017-06-18T03:37:57.786407134Z","user":""}
+
+		for _, whitelistedIndex := range whitelistedIndices {
+			if glob.Glob(whitelistedIndex.Name, index) {
+				for _, method := range whitelistedIndex.RESTverbs {
+					if r.Method == method {
+						return true, nil
+					}
+				}
+				return false, errors.New("Method not allowed on index")
+			}
+		}
+		return false, errors.New("Index not allowed")
+	}
+
+	return true, nil
+}
+
+func indexBodyPermitted(index string, r *http.Request, C *Config) (bool, error) {
+	groups, _ := getGroups(r, C)
+	for _, group := range groups {
+		if configGroup, ok := C.RBAC.Groups[group]; ok {
+			for _, configIndex := range configGroup.WhitelistedIndices {
+				if glob.Glob(configIndex.Name, index) {
 					return true, nil
 				}
 			}
 		}
 	}
-
 	return false, nil
+}
+
+func getBody(r *http.Request) ([]byte, error) {
+	var body []byte
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return body, err
+	}
+	rdr1 := ioutil.NopCloser(bytes.NewBuffer(buf))
+	body, err = ioutil.ReadAll(rdr1)
+	if err != nil {
+		return body, err
+	}
+	// If we don't keep a second reader untouched, we will consume
+	// the request body when reading it
+	rdr2 := ioutil.NopCloser(bytes.NewBuffer(buf))
+	// restore the body from the second reader
+	r.Body = rdr2
+
+	return body, nil
 }
 
 func (C *Config) getConf() *Config {
@@ -337,11 +451,13 @@ func (C *Config) getConf() *Config {
 	pwd, _ := os.Getwd()
 	yamlFile, err := ioutil.ReadFile(path.Join(pwd, "config.yaml"))
 	if err != nil {
-		log15.Error("yamlFile.Get err   #%v ", err)
+		log15.Error(err.Error())
+		os.Exit(1)
 	}
 	err = yaml.Unmarshal(yamlFile, C)
 	if err != nil {
-		log15.Error("Unmarshal: %v", err)
+		log15.Error(err.Error())
+		os.Exit(1)
 	}
 
 	return C
