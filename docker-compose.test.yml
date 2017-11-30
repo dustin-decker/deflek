@@ -11,7 +11,7 @@ services:
   app:
     image: deflek
     ports:
-      - "127.0.0.1:8100:8080"
+      - "127.0.0.1:8080:8080"
     networks:
       - test-deflek
     configs:

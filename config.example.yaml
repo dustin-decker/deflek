@@ -2,15 +2,19 @@ listen_interface: 127.0.0.1
 listen_port: 8080
 target: http://elasticsearch:9200
 anonymous_group: group1
-group_header_name: X-Saml-Groups
+group_header_name: X-Remote-Groups
 group_header_type: AD
-user_header_name: X-Saml-Username
+user_header_name: X-Remote-User
 
 rbac:
   groups:
     group1:
       whitelisted_indices:
         - name: .kibana
+          rest_verbs:
+          - GET
+          - POST
+        - name: secret_stuff
           rest_verbs:
           - GET
           - POST

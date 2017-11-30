@@ -13,6 +13,7 @@ RUN export PATH=$PATH:`go env GOHOSTOS`-`go env GOHOSTARCH` \
 
 # Production image*
 FROM scratch
+EXPOSE 8080
 COPY --from=builder /go/src/github.com/dustin-decker/deflek/deflek /deflek
 COPY --from=builder /go/src/github.com/dustin-decker/deflek/config.yaml /config.yaml
 CMD ["/app"]
