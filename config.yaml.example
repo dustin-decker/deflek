@@ -1,7 +1,6 @@
 listen_interface: 127.0.0.1
 listen_port: 8080
 target: http://elasticsearch:9200
-target_path_prefix:
 anonymous_group: group1
 group_header_name: X-Saml-Groups
 group_header_type: AD
