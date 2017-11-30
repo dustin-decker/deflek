@@ -1,3 +1,4 @@
 FROM scratch
+# If you get a file not found error, you didn't compile a static binary
 COPY deflek /
 CMD ["deflEK"]
