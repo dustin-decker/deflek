@@ -1,0 +1,30 @@
+version: '3.1'
+
+networks:
+  networks:
+    test-deflek:
+
+services:
+  app:
+    image: deflek
+    ports:
+      - "127.0.0.1:8100:8080"
+    networks:
+      - test-deflek
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 30s
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.0.0
+    volumes:
+      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+    ports:
+      - "127.0.0.1:9200:9200"
+      - "127.0.0.1:9300:9300"
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - test-deflek
