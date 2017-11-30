@@ -100,7 +100,7 @@ type traceTransport struct {
 	Response *http.Response
 }
 
-func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
+func (p *Prox) filterRequest(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	trace := AppTrace{}
 	trans := traceTransport{}
@@ -122,10 +122,6 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 
 	trace.Method = r.Method
 
-	if isKibanaHealthcheckSpam(&trace) {
-		return
-	}
-
 	fields := log15.Ctx{
 		"code":    trace.Code,
 		"method":  trace.Method,
@@ -142,31 +138,6 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 	} else {
 		p.log.Info(trace.Message, fields)
 	}
-}
-
-func isKibanaHealthcheckSpam(t *AppTrace) bool {
-	traceIgnorePathsGET := []string{
-		"/_nodes/_local",
-		"/_nodes",
-		"/_xpack",
-		"/_cluster/health/.kibana",
-	}
-	for _, path := range traceIgnorePathsGET {
-		if t.Method == "GET" && t.Path == path {
-			return true
-		}
-	}
-	if t.Method == "HEAD" {
-		return true
-	}
-	if t.Path == "/_mget" && t.Query == "{\"docs\":[{\"_index\":\".kibana\",\"_type\":\"config\",\"_id\":\"5.4.1\"}]}" {
-		return true
-	}
-	if t.Path == "/.kibana/config/_search" && t.Query == "{\"size\":1000,\"sort\":[{\"buildNum\":{\"order\":\"desc\",\"unmapped_type\":\"string\"}}]}" {
-		return true
-	}
-
-	return false
 }
 
 func (t *traceTransport) RoundTrip(request *http.Request) (*http.Response, error) {
@@ -193,8 +164,6 @@ func (t *traceTransport) RoundTrip(request *http.Request) (*http.Response, error
 }
 
 func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, error) {
-	path := strings.TrimPrefix(r.URL.Path, C.TargetPathPrefix)
-	trace.Path = path
 	user, err := getUser(r, C)
 	if err != nil {
 		return false, err
@@ -217,12 +186,12 @@ func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, err
 	}
 
 	// Control Kibana index pattern access
-	if !canManage && strings.HasPrefix(path, "/elasticsearch/.kibana/index-pattern") && !strings.HasPrefix(path, "/elasticsearch/.kibana/index-pattern/_search") {
+	if !canManage && strings.HasPrefix(r.URL.Path, "/elasticsearch/.kibana/index-pattern") && !strings.HasPrefix(r.URL.Path, "/elasticsearch/.kibana/index-pattern/_search") {
 		err = fmt.Errorf("Cannot manage %s", r.URL.Path)
 		return false, err
 	}
 	// Control Kibana's Dev API console access
-	if !canManage && strings.HasPrefix(path, "/api/console") {
+	if !canManage && strings.HasPrefix(r.URL.Path, "/api/console") {
 		err = fmt.Errorf("Cannot manage %s", r.URL.Path)
 		return false, err
 	}
@@ -305,74 +274,95 @@ func getWhitelistedIndices(r *http.Request, C *Config) ([]Index, error) {
 	return indices, nil
 }
 
-func indexPermitted(trace *AppTrace, r *http.Request, C *Config) (bool, error) {
-	path := strings.TrimPrefix(r.URL.Path, C.TargetPathPrefix)
-	index := strings.Split(path, "/")[1]
+type requestContext struct {
+	trace              *AppTrace
+	r                  *http.Request
+	c                  *Config
+	whitelistedIndices []Index
+	index              string
+}
 
-	if index == "_all" || index == "_search" {
-		return false, errors.New("Searching all indices is not permitted")
+func filterMsearch(ctx requestContext) (bool, error) {
+	body, err := getBody(ctx.r)
+	if err != nil {
+		return false, err
 	}
+	ctx.trace.Query = string(body)
+
+	// They're sending newline deliminated JSON blobs :/
+	// Savages.
+	firstRoot := bytes.Split(body, []byte("\n"))[0]
+
+	f := SearchReq{}
+	err = json.Unmarshal(firstRoot, &f)
+	if err != nil {
+		return false, err
+	}
+	err = json.Unmarshal(firstRoot, &f.X)
+	if err != nil {
+		return false, err
+	}
+
+	// Trace indices
+	var indices []string
+	switch jv := f.Index.(type) {
+	// ES 2.X uses index string
+	case string:
+		indices = []string{jv}
+	// ES 5 uses JSON array of indices
+	case []interface{}:
+		for _, v := range jv {
+			indices = append(indices, v.(string))
+		}
+	default:
+		return false, fmt.Errorf("Unknown type %v returned for json field 'index'",
+			reflect.TypeOf(f.Index))
+	}
+	ctx.trace.Index = indices
+
+	// Check if index is is the whitelist
+	for _, index := range indices {
+		permitted, err := indexBodyPermitted(index, ctx.r, ctx.c)
+		if err != nil {
+			return false, err
+		}
+		if !permitted {
+			err = fmt.Errorf("%s not in index whitelist", index)
+			return false, err
+		}
+	}
+	return true, err
+}
+
+func indexPermitted(trace *AppTrace, r *http.Request, C *Config) (bool, error) {
+	index := strings.Split(r.URL.Path, "/")[1]
 
 	whitelistedIndices, err := getWhitelistedIndices(r, C)
 	if err != nil {
 		return false, err
 	}
 
-	if index == "_msearch" {
-		body, err := getBody(r)
-		if err != nil {
-			return false, err
-		}
-		trace.Query = string(body)
-
-		// They're sending newline deliminated JSON blobs :/
-		// Savages.
-		firstRoot := bytes.Split(body, []byte("\n"))[0]
-
-		f := SearchReq{}
-		err = json.Unmarshal(firstRoot, &f)
-		if err != nil {
-			return false, err
-		}
-		err = json.Unmarshal(firstRoot, &f.X)
-		if err != nil {
-			return false, err
-		}
-
-		// Trace indices
-		var indices []string
-		switch jv := f.Index.(type) {
-		// ES 2.X uses index string
-		case string:
-			indices = []string{jv}
-		// ES 5 uses JSON array of indices
-		case []interface{}:
-			for _, v := range jv {
-				indices = append(indices, v.(string))
-			}
-		default:
-			return false, fmt.Errorf("Unknown type %v returned for json field 'index'",
-				reflect.TypeOf(f.Index))
-		}
-		trace.Index = indices
-
-		// Check if index is is the whitelist
-		for _, index := range indices {
-			permitted, err := indexBodyPermitted(index, r, C)
-			if err != nil {
-				return false, err
-			}
-			if !permitted {
-				err = fmt.Errorf("%s not in index whitelist", index)
-				return false, err
-			}
-		}
+	ctx := requestContext{
+		trace:              trace,
+		r:                  r,
+		c:                  C,
+		whitelistedIndices: whitelistedIndices,
+		index:              index,
 	}
 
-	// TODO: _mget still needs index RBAC enforced
-	if index == "_mget" {
+	switch true {
+	case index == "_all" || index == "_search":
+		// maybe this query can be re-written against permitted indices
+		return false, errors.New("Searching all indices is not supported at this time")
+
+	case index == "_msearch":
+		filterMsearch(ctx)
+
+	case index == "_mget":
 		body, _ := getBody(r)
 		trace.Query = string(body)
+		return false, errors.New("Searching with is not supported at this time")
+
 	}
 
 	// Index API endpoints begin with the index name
@@ -388,7 +378,7 @@ func indexPermitted(trace *AppTrace, r *http.Request, C *Config) (bool, error) {
 		}
 
 		// req'd by Visual Builder
-		if path == "/*/_field_stats" {
+		if r.URL.Path == "/*/_field_stats" {
 			return true, nil
 		}
 
@@ -467,15 +457,15 @@ func main() {
 	var C Config
 	C.getConf()
 
-	reg, err := regexp.Compile(C.WhitelistedRoutes)
-	if err != nil {
-		log15.Error("Error compiling whitelistedRoutes regex: %s", err)
-	}
-	routes := []*regexp.Regexp{reg}
-
 	proxy := NewProx(&C)
-	proxy.routePatterns = routes
 
-	http.HandleFunc("/", proxy.handle)
+	// reg, err := regexp.Compile(C.WhitelistedRoutes)
+	// if err != nil {
+	// 	log15.Error("Error compiling whitelistedRoutes regex: %s", err)
+	// }
+	// routes := []*regexp.Regexp{reg}
+	// proxy.routePatterns = routes
+
+	http.HandleFunc("/", proxy.filterRequest)
 	http.ListenAndServe(fmt.Sprintf("%s:%d", C.ListenInterface, C.ListenPort), nil)
 }
