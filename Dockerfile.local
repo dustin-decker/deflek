@@ -1,0 +1,3 @@
+FROM SCRATCH
+COPY deflek /
+CMD ["deflEK"]
