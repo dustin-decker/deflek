@@ -1,8 +1,8 @@
 # deflEK
 
-Reverse proxy to add index-level RBAC to Elasticsearch (soon) or Kibana
+NOT CURRENTLY USABLE, IN THE PROCESSES OF REWRITE
 
-This is an early POC. It is not close to being feature complete. Use at your own risk.
+Reverse proxy to add index-level RBAC to Elasticsearch.
 
 It currently requires fronting with a SSO authentication proxy to pass Username and Group headers for RBAC lookup. deflEK assumes these headers are trusted input. If that is not true for your use case, you MUST add authentication middleware.
 
