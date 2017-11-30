@@ -24,6 +24,18 @@
   version = "v0.0.2"
 
 [[projects]]
+  name = "github.com/olivere/elastic"
+  packages = ["."]
+  revision = "79ff368708b3a2a9da641dc831d95fd0782bf4ef"
+  version = "v5.0.58"
+
+[[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/ryanuber/go-glob"
   packages = ["."]
@@ -35,6 +47,12 @@
   revision = "f845067cf72a21fb4929b0e6a35273bd83b56396"
 
 [[projects]]
+  name = "gopkg.in/olivere/elastic.v5"
+  packages = ["config","uritemplates"]
+  revision = "79ff368708b3a2a9da641dc831d95fd0782bf4ef"
+  version = "v5.0.58"
+
+[[projects]]
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   revision = "cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b"
@@ -42,6 +60,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f124d4930005c7011e9f9bb06969226489c72a6eb307d27bb27f73c2850f8562"
+  inputs-digest = "c6cc7908b5f7a2f439da0d48177d515750ea3e6cc580f985d9099e1bd9242c3d"
   solver-name = "gps-cdcl"
   solver-version = 1

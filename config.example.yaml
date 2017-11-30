@@ -22,7 +22,7 @@ rbac:
           rest_verbs:
           - GET
           - POST
-        - name: data
+        - name: test_deflek
           rest_verbs:
           - GET
           - POST
