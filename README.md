@@ -24,10 +24,14 @@ It currently requires fronting with a SSO authentication proxy to pass Username 
 
 ## Testing
 
-Spin up [docker-elk](https://github.com/deviantony/docker-elk):
-
 Build docker image:
 
 ``` bash
 docker build -t deflek -f Dockerfile.local .
+```
+
+Deploy test stack to local Swarm:
+
+``` bash
+docker stack deploy -c docker-compose.test.yml deflek
 ```
