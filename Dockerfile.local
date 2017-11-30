@@ -1,4 +1,3 @@
 FROM scratch
 COPY deflek /
-COPY config.yaml.example /config.yaml
 CMD ["deflEK"]
