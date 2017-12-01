@@ -154,6 +154,7 @@ func indexPermitted(trace *AppTrace, r *http.Request, C *Config) (bool, error) {
 		// maybe this query can be re-written against permitted indices
 		return false, errors.New("Searching all indices is not supported at this time")
 
+	// this needs to be revisited. doesn't seem correct
 	case index == "_msearch":
 		filterMsearch(ctx)
 

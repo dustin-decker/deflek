@@ -67,14 +67,21 @@ func TestAll(t *testing.T) {
 	createEsClient()
 	httpC := createHTTPClient()
 
-	// ctx := context.Background()
-	// termQuery := elastic.NewTermQuery("user", "dustind")
-	// _, err := c.Search().Index("_all").Query(termQuery).Do(ctx)
-	// if !elastic.IsStatusCode(err, 401) {
-	// 	t.Error("request should have been disallowed")
-	// }
-
 	res, err := httpC.Get(base + "/_all/tweet/_search?q=tag:wow")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if res.StatusCode != 401 {
+		t.Error("request should have been disallowed", res.StatusCode)
+	}
+}
+
+func TestSearch(t *testing.T) {
+	createEsClient()
+	httpC := createHTTPClient()
+
+	res, err := httpC.Get(base + "/_search?q=tag:wow")
 	if err != nil {
 		log.Fatal(err)
 	}
