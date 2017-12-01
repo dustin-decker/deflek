@@ -90,3 +90,17 @@ func TestSearch(t *testing.T) {
 		t.Error("request should have been disallowed", res.StatusCode)
 	}
 }
+
+func TestMget(t *testing.T) {
+	createEsClient()
+	httpC := createHTTPClient()
+
+	res, err := httpC.Get(base + "/_mget")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if res.StatusCode != 401 {
+		t.Error("request should have been disallowed", res.StatusCode)
+	}
+}

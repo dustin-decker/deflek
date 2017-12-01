@@ -161,7 +161,7 @@ func indexPermitted(trace *AppTrace, r *http.Request, C *Config) (bool, error) {
 	case index == "_mget":
 		body, _ := getBody(r)
 		trace.Query = string(body)
-		return false, errors.New("Searching with is not supported at this time")
+		return false, errors.New("Searching with mget is not supported at this time")
 
 	case !strings.HasPrefix(index, "_") && len(index) > 0:
 
