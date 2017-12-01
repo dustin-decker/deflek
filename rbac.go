@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -29,6 +30,8 @@ func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, err
 	// if err != nil {
 	// 	return false, err
 	// }
+
+	fmt.Println(trace.Groups)
 
 	return true, nil
 }

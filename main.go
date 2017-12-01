@@ -101,9 +101,10 @@ func (p *Prox) filterRequest(w http.ResponseWriter, r *http.Request) {
 	trans := traceTransport{}
 	p.proxy.Transport = &trans
 
-	_, err := p.checkRBAC(r, p.config, &trace)
-	if err != nil {
+	ok, err := p.checkRBAC(r, p.config, &trace)
+	if err != nil || !ok {
 		trace.Error = err.Error()
+		w.WriteHeader(http.StatusUnauthorized)
 	} else {
 		p.proxy.ServeHTTP(w, r)
 	}
@@ -112,15 +113,15 @@ func (p *Prox) filterRequest(w http.ResponseWriter, r *http.Request) {
 	if trans.Response != nil {
 		trace.Code = trans.Response.StatusCode
 	} else {
-		trace.Code = 403
+		trace.Code = 401
 	}
 
 	trace.Method = r.Method
 
 	fields := log15.Ctx{
 		"code":    trace.Code,
-		"method":  trace.Method,
-		"path":    trace.Path,
+		"method":  r.Method,
+		"path":    r.URL.Path,
 		"elasped": trace.Elapsed,
 		"user":    trace.User,
 		"groups":  trace.Groups,
