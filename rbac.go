@@ -164,6 +164,7 @@ func indexPermitted(trace *AppTrace, r *http.Request, C *Config) (bool, error) {
 		return false, errors.New("Searching with mget is not supported at this time")
 
 	case !strings.HasPrefix(index, "_") && len(index) > 0:
+		filterNamedIndex(ctx)
 
 	}
 	return true, nil
