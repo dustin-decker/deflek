@@ -100,17 +100,17 @@ func TestAll(t *testing.T) {
 	testAllowed(t, res)
 }
 
-// func TestSearch(t *testing.T) {
-// 	createEsClient()
-// 	httpC := createHTTPClient()
+func TestSearch(t *testing.T) {
+	createEsClient()
+	httpC := createHTTPClient()
 
-// 	res, err := httpC.Get(base + "/_search?q=tag:wow")
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
+	res, err := httpC.Get(base + "/_search?q=tag:wow")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-// 	testBlocked(t, res)
-// }
+	testAllowed(t, res)
+}
 
 func TestMsearchBlocked(t *testing.T) {
 	createEsClient()
