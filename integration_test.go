@@ -42,7 +42,7 @@ func createEsClient() *elastic.Client {
 		log.Fatal(err)
 	}
 
-	testIndices := []string{"test_deflek", "secret_stuff"}
+	testIndices := []string{"test_deflek", "test_deflek2", "secret_stuff"}
 	for _, index := range testIndices {
 		exists, err := c.IndexExists(index).Do(ctx)
 		if err != nil {
@@ -52,6 +52,7 @@ func createEsClient() *elastic.Client {
 			c.CreateIndex(index).Do(ctx)
 			c.Index().Index("secret_stuff").Id("1").OpType("index")
 			c.Index().Index("test_deflek").Id("1").OpType("index")
+			c.Index().Index("test_deflek2").Id("1").OpType("index")
 		}
 	}
 	return c
@@ -87,17 +88,17 @@ func testBlocked(t *testing.T, res *http.Response) {
 
 const base = "http://127.0.0.1:8080"
 
-// func TestAll(t *testing.T) {
-// 	createEsClient()
-// 	httpC := createHTTPClient()
+func TestAll(t *testing.T) {
+	createEsClient()
+	httpC := createHTTPClient()
 
-// 	res, err := httpC.Get(base + "/_all/tweet/_search?q=tag:wow")
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
+	res, err := httpC.Get(base + "/_all/_search?q=tag:wow")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-// 	testBlocked(t, res)
-// }
+	testAllowed(t, res)
+}
 
 // func TestSearch(t *testing.T) {
 // 	createEsClient()
