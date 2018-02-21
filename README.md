@@ -27,3 +27,35 @@ Deploy test stack to local Swarm:
 ``` bash
 docker stack deploy -c docker-compose.test.yml deflek
 ```
+
+## Testing it
+
+Ensure you have the dependencies:
+
+`` bash
+dep ensure
+``
+
+Use the example config:
+
+``` bash
+cp config.example.yaml config.yaml
+```
+
+Run a test elasticsearch cluster, if needed:
+
+``` bash
+docker run -p 127.0.0.1:9200:9200 --rm -it -e "discovery.type=single-node" -v esdata1:/usr/share/elasticsearch/data docker.elastic.co/elasticsearch/elasticsearch-oss:6.2.1
+```
+
+Build and run deflek:
+
+``` bash
+go build; ./deflEK
+```
+
+Run deflek integration and unit tests:
+
+``` bash
+go test
+```
