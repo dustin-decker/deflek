@@ -16,9 +16,9 @@ func mutateRequest(ctx requestContext) {
 		}
 	}
 	indicesAsURI := strings.Join(indices, ",")
-	api := ctx.api
-	api = strings.TrimPrefix(api, "/_all")
-	urlStr := "/" + indicesAsURI + ctx.r.URL.EscapedPath()
+	escapedPath := ctx.r.URL.EscapedPath()
+	escapedPath = strings.TrimPrefix(escapedPath, "/_all")
+	urlStr := "/" + indicesAsURI + escapedPath
 	reqURL, _ := url.Parse(urlStr)
 	ctx.r.URL = reqURL
 }
