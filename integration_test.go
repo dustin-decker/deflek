@@ -42,7 +42,11 @@ func createEsClient() *elastic.Client {
 		log.Fatal(err)
 	}
 
-	testIndices := []string{"test_deflek", "test_deflek2", "secret_stuff"}
+	testIndices := []string{
+		"test_deflek",
+		"test_deflek2",
+		"secret_stuff",
+		"globby-test"}
 	for _, index := range testIndices {
 		exists, err := c.IndexExists(index).Do(ctx)
 		if err != nil {
@@ -53,6 +57,8 @@ func createEsClient() *elastic.Client {
 			c.Index().Index("secret_stuff").Id("1").OpType("index")
 			c.Index().Index("test_deflek").Id("1").OpType("index")
 			c.Index().Index("test_deflek2").Id("1").OpType("index")
+			c.Index().Index("globby-test").Id("1").OpType("index")
+
 		}
 	}
 	return c
@@ -259,6 +265,18 @@ func TestRESTverbAllow(t *testing.T) {
 
 	res, err := httpC.Post(base+"/test_deflek/_search?q=tag:wow",
 		"application/json", bytes.NewBuffer([]byte("{}")))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	testAllowed(t, res)
+}
+
+func TestGlobURI(t *testing.T) {
+	createEsClient()
+	httpC := createHTTPClient()
+
+	res, err := httpC.Get(base + "/globby-te*/_search?q=tag:wow")
 	if err != nil {
 		log.Fatal(err)
 	}
