@@ -32,9 +32,9 @@ docker stack deploy -c docker-compose.test.yml deflek
 
 Ensure you have the dependencies:
 
-`` bash
+``` bash
 dep ensure
-``
+```
 
 Use the example config:
 
