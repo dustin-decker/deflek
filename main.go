@@ -75,7 +75,7 @@ func NewProx(C *Config) *Prox {
 
 	logger := log.New()
 	// logger.SetHandler(log.MultiHandler(log.StreamHandler(os.Stderr,
-	// 	log15.JsonFormat())))
+	// 	log.JsonFormat())))
 
 	return &Prox{
 		config: C,
