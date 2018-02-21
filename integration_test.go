@@ -301,6 +301,23 @@ func TestGlobURI(t *testing.T) {
 	testAllowed(t, res)
 }
 
+func TestWildcardIndexMutator(t *testing.T) {
+	createEsClient()
+	httpC := createHTTPClient()
+
+	body := `
+{"index":"*","ignore":[404],"timeout":"90s","requestTimeout":90000,"ignoreUnavailable":true}
+{"size":0,"query":{"bool":{"must":[{"range":{"@timestamp":{"gte":1519223869113,"lte":1519225669114,"format":"epoch_millis"}}},{"bool":{"must":[{"match_all":{}}],"must_not":[]}}]}},"aggs":{"61ca57f1-469d-11e7-af02-69e470af7417":{"filter":{"match_all":{}},"aggs":{"timeseries":{"date_histogram":{"field":"@timestamp","interval":"30s","min_doc_count":0,"time_zone":"America/Chicago","extended_bounds":{"min":1519223869113,"max":1519225669114}},"aggs":{"61ca57f2-469d-11e7-af02-69e470af7417":{"bucket_script":{"buckets_path":{"count":"_count"},"script":{"inline":"count * 1","lang":"expression"},"gap_policy":"skip"}}}}}}}}
+`
+
+	res, err := httpC.Post(base+"/_msearch", "application/json", bytes.NewBuffer([]byte(body)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	testAllowed(t, res)
+}
+
 //// This might not be a thing in 6.X!
 // func TestFieldStatsAllow(t *testing.T) {
 // 	createEsClient()
