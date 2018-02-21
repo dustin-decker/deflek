@@ -30,4 +30,7 @@ rbac:
           rest_verbs:
           - GET
           - POST
+        - name: test_deflek2
+          rest_verbs:
+          - GET
       can_manage: true

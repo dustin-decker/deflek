@@ -1,15 +1,13 @@
 package main
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
 	glob "github.com/ryanuber/go-glob"
 )
 
-func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, error) {
+func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *Trace) (bool, error) {
 	user, err := getUser(r, C)
 	if err != nil {
 		return false, err
@@ -25,13 +23,6 @@ func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *AppTrace) (bool, err
 	if err != nil || !ok {
 		return false, err
 	}
-
-	// canManage, err := canManage(r, C)
-	// if err != nil {
-	// 	return false, err
-	// }
-
-	fmt.Println(trace.Groups)
 
 	return true, nil
 }
@@ -111,61 +102,80 @@ func getWhitelistedIndices(r *http.Request, C *Config) ([]Index, error) {
 	return indices, nil
 }
 
-func indexBodyPermitted(index string, r *http.Request, C *Config) (bool, error) {
-	groups, _ := getGroups(r, C)
-	for _, group := range groups {
-		if configGroup, ok := C.RBAC.Groups[group]; ok {
-			for _, configIndex := range configGroup.WhitelistedIndices {
-				if glob.Glob(configIndex.Name, index) {
-					return true, nil
-				}
-			}
-		}
-	}
-	return false, nil
-}
+// func indexBodyPermitted(index string, r *http.Request, C *Config) (bool, error) {
+// 	groups, _ := getGroups(r, C)
+// 	for _, group := range groups {
+// 		if configGroup, ok := C.RBAC.Groups[group]; ok {
+// 			for _, configIndex := range configGroup.WhitelistedIndices {
+// 				if glob.Glob(configIndex.Name, index) {
+// 					return true, nil
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return false, nil
+// }
 
 type requestContext struct {
-	trace              *AppTrace
+	trace              *Trace
 	r                  *http.Request
 	c                  *Config
 	whitelistedIndices []Index
-	index              string
+	indices            []string
+	api                string
 }
 
-func indexPermitted(trace *AppTrace, r *http.Request, C *Config) (bool, error) {
-	index := strings.Split(r.URL.Path, "/")[1]
-
+func indexPermitted(trace *Trace, r *http.Request, C *Config) (bool, error) {
 	whitelistedIndices, err := getWhitelistedIndices(r, C)
 	if err != nil {
 		return false, err
 	}
 
+	api := strings.Split(r.URL.EscapedPath(), "/")[1]
 	ctx := requestContext{
 		trace:              trace,
 		r:                  r,
 		c:                  C,
 		whitelistedIndices: whitelistedIndices,
-		index:              index,
+		api:                api,
 	}
 
-	switch true {
-	case index == "_all" || index == "_search":
-		// maybe this query can be re-written against permitted indices
-		return false, errors.New("Searching all indices is not supported at this time")
-
-	// this needs to be revisited. doesn't seem correct
-	case index == "_msearch":
-		filterMsearch(ctx)
-
-	case index == "_mget":
-		body, _ := getBody(r)
-		trace.Query = string(body)
-		return false, errors.New("Searching with mget is not supported at this time")
-
-	case !strings.HasPrefix(index, "_") && len(index) > 0:
-		filterNamedIndex(ctx)
-
+	if api == "_all" || api == "_search" {
+		mutateRequest(ctx)
 	}
-	return true, nil
+
+	indices, err := extractIndices(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	var allowedIndices []string
+	if len(indices) > 0 {
+		for _, whitelistedIndex := range ctx.whitelistedIndices {
+			for _, index := range indices {
+				if glob.Glob(whitelistedIndex.Name, index) {
+					if stringInSlice(ctx.r.Method, whitelistedIndex.RESTverbs) {
+						allowedIndices = append(allowedIndices, index)
+					}
+				}
+			}
+		}
+	} else {
+		return true, nil
+	}
+
+	if len(allowedIndices) == len(indices) {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
 }

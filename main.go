@@ -13,15 +13,9 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/inconshreveable/log15"
+	log "github.com/inconshreveable/log15"
 	yaml "gopkg.in/yaml.v2"
 )
-
-// SearchReq unmarshalls index field from Elasticsearch multi-search API request json body
-type SearchReq struct {
-	Index interface{}            `json:"index"`
-	X     map[string]interface{} `json:"-"` // Rest of the fields should go here.
-}
 
 // Prox defines our reverse proxy
 type Prox struct {
@@ -29,7 +23,7 @@ type Prox struct {
 	target        *url.URL
 	proxy         *httputil.ReverseProxy
 	routePatterns []*regexp.Regexp
-	log           log15.Logger
+	log           log.Logger
 }
 
 // Config for reverse proxy settings and RBAC users and groups
@@ -61,8 +55,8 @@ type Index struct {
 	RESTverbs []string `yaml:"rest_verbs"`
 }
 
-// AppTrace - Request error handling wrapper on the handler
-type AppTrace struct {
+// Trace - Request error handling wrapper on the handler
+type Trace struct {
 	Path    string
 	Method  string
 	Error   string
@@ -71,17 +65,17 @@ type AppTrace struct {
 	Elapsed int
 	User    string
 	Groups  []string
-	Query   string
-	Index   []string
+	Body    string
+	Indices []string
 }
 
 // NewProx returns new reverse proxy instance
 func NewProx(C *Config) *Prox {
 	url, _ := url.Parse(C.Target)
 
-	logger := log15.New()
-	logger.SetHandler(log15.MultiHandler(log15.StreamHandler(os.Stderr,
-		log15.JsonFormat())))
+	logger := log.New()
+	// logger.SetHandler(log.MultiHandler(log.StreamHandler(os.Stderr,
+	// 	log15.JsonFormat())))
 
 	return &Prox{
 		config: C,
@@ -97,12 +91,14 @@ type traceTransport struct {
 
 func (p *Prox) filterRequest(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
-	trace := AppTrace{}
+	trace := Trace{}
 	trans := traceTransport{}
 	p.proxy.Transport = &trans
 
 	ok, err := p.checkRBAC(r, p.config, &trace)
-	if err != nil || !ok {
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+	} else if err != nil {
 		trace.Error = err.Error()
 		w.WriteHeader(http.StatusUnauthorized)
 	} else {
@@ -118,15 +114,15 @@ func (p *Prox) filterRequest(w http.ResponseWriter, r *http.Request) {
 
 	trace.Method = r.Method
 
-	fields := log15.Ctx{
+	fields := log.Ctx{
 		"code":    trace.Code,
 		"method":  r.Method,
 		"path":    r.URL.Path,
 		"elasped": trace.Elapsed,
 		"user":    trace.User,
 		"groups":  trace.Groups,
-		"query":   trace.Query,
-		"index":   trace.Index,
+		"body":    trace.Body,
+		"indices": trace.Indices,
 	}
 
 	if err != nil {
@@ -184,12 +180,12 @@ func (C *Config) getConf() *Config {
 	pwd, _ := os.Getwd()
 	yamlFile, err := ioutil.ReadFile(path.Join(pwd, "config.yaml"))
 	if err != nil {
-		log15.Error(err.Error())
+		log.Error(err.Error())
 		os.Exit(1)
 	}
 	err = yaml.Unmarshal(yamlFile, C)
 	if err != nil {
-		log15.Error(err.Error())
+		log.Error(err.Error())
 		os.Exit(1)
 	}
 
@@ -201,13 +197,6 @@ func main() {
 	C.getConf()
 
 	proxy := NewProx(&C)
-
-	// reg, err := regexp.Compile(C.WhitelistedRoutes)
-	// if err != nil {
-	// 	log15.Error("Error compiling whitelistedRoutes regex: %s", err)
-	// }
-	// routes := []*regexp.Regexp{reg}
-	// proxy.routePatterns = routes
 
 	http.HandleFunc("/", proxy.filterRequest)
 	http.ListenAndServe(fmt.Sprintf("%s:%d", C.ListenInterface, C.ListenPort), nil)
