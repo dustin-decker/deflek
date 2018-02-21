@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -117,12 +118,13 @@ func getWhitelistedIndices(r *http.Request, C *Config) ([]Index, error) {
 // }
 
 type requestContext struct {
-	trace              *Trace
-	r                  *http.Request
-	c                  *Config
-	whitelistedIndices []Index
-	indices            []string
-	api                string
+	trace                   *Trace
+	r                       *http.Request
+	c                       *Config
+	whitelistedIndices      []Index
+	whitelistedIndicesNames string
+	indices                 []string
+	api                     string
 }
 
 func indexPermitted(trace *Trace, r *http.Request, C *Config) (bool, error) {
@@ -131,13 +133,19 @@ func indexPermitted(trace *Trace, r *http.Request, C *Config) (bool, error) {
 		return false, err
 	}
 
+	var indicesStrSlice []string
+	for _, whitelistedIndex := range whitelistedIndices {
+		indicesStrSlice = append(indicesStrSlice, whitelistedIndex.Name)
+	}
+
 	api := strings.Split(r.URL.EscapedPath(), "/")[1]
 	ctx := requestContext{
-		trace:              trace,
-		r:                  r,
-		c:                  C,
-		whitelistedIndices: whitelistedIndices,
-		api:                api,
+		trace:                   trace,
+		r:                       r,
+		c:                       C,
+		whitelistedIndices:      whitelistedIndices,
+		whitelistedIndicesNames: strings.Join(indicesStrSlice, ","),
+		api: api,
 	}
 
 	if api == "_all" || api == "_search" {
@@ -150,6 +158,21 @@ func indexPermitted(trace *Trace, r *http.Request, C *Config) (bool, error) {
 	}
 
 	var allowedIndices []string
+
+	// support searching wild card indices
+	// req'd by Kibana Visual Builder
+	// this implementation is gros
+	for i, index := range indices {
+		if index == "*" {
+			err := mutateWildcardIndexInBody(ctx)
+			if err != nil {
+				return false, err
+			}
+			indices[i] = ctx.whitelistedIndicesNames
+			allowedIndices = append(allowedIndices, ctx.whitelistedIndicesNames)
+		}
+	}
+
 	if len(indices) > 0 {
 		for _, whitelistedIndex := range ctx.whitelistedIndices {
 			for _, index := range indices {
@@ -164,9 +187,12 @@ func indexPermitted(trace *Trace, r *http.Request, C *Config) (bool, error) {
 		return true, nil
 	}
 
-	if len(allowedIndices) == len(indices) {
+	if len(allowedIndices) >= len(indices) {
 		return true, nil
 	}
+	fmt.Println(allowedIndices)
+	fmt.Println(indices)
+	fmt.Println("here")
 
 	return false, nil
 }

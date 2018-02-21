@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"io/ioutil"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
@@ -18,4 +21,20 @@ func mutateRequest(ctx requestContext) {
 	urlStr := "/" + indicesAsURI + ctx.r.URL.EscapedPath()
 	reqURL, _ := url.Parse(urlStr)
 	ctx.r.URL = reqURL
+}
+
+func mutateWildcardIndexInBody(ctx requestContext) error {
+	// this is gross
+	body, err := getBody(ctx.r)
+	if err != nil {
+		return err
+	}
+	re := regexp.MustCompile(`\"\*\"`)
+	cleanIndex := `"` + ctx.whitelistedIndicesNames + `"`
+	cleanBody := re.ReplaceAllString(string(body), cleanIndex)
+	ctx.r.Body = ioutil.NopCloser(bytes.NewReader([]byte(cleanBody)))
+	ctx.r.ContentLength = int64(len([]byte(cleanBody)))
+	ctx.trace.Body = cleanBody
+
+	return nil
 }
