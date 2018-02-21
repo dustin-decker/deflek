@@ -214,7 +214,8 @@ func TestMgetAllowed(t *testing.T) {
 	}	
 	`
 
-	res, err := httpC.Post(base+"/_mget", "application/json", bytes.NewBuffer([]byte(body)))
+	res, err := httpC.Post(base+"/_mget", "application/json",
+		bytes.NewBuffer([]byte(body)))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -250,12 +251,21 @@ func TestRESTverbBlock(t *testing.T) {
 	createEsClient()
 	httpC := createHTTPClient()
 
+	// test on index literal
 	res, err := httpC.Post(base+"/test_deflek2/_search?q=tag:wow",
 		"application/json", bytes.NewBuffer([]byte("{}")))
 	if err != nil {
 		log.Fatal(err)
 	}
+	testBlocked(t, res)
 
+	// test on glob patterns
+	res, err = httpC.Post(base+"/globby-te*/_search?q=tag:wow",
+		"application/json",
+		bytes.NewBuffer([]byte("{}")))
+	if err != nil {
+		log.Fatal(err)
+	}
 	testBlocked(t, res)
 }
 
@@ -263,12 +273,19 @@ func TestRESTverbAllow(t *testing.T) {
 	createEsClient()
 	httpC := createHTTPClient()
 
+	// test on index literal
 	res, err := httpC.Post(base+"/test_deflek/_search?q=tag:wow",
 		"application/json", bytes.NewBuffer([]byte("{}")))
 	if err != nil {
 		log.Fatal(err)
 	}
+	testAllowed(t, res)
 
+	// test on glob patterns
+	res, err = httpC.Get(base + "/globby-t*/_search?q=tag:wow")
+	if err != nil {
+		log.Fatal(err)
+	}
 	testAllowed(t, res)
 }
 
