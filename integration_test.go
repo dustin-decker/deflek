@@ -240,6 +240,32 @@ func TestNamedIndexAllow(t *testing.T) {
 	testAllowed(t, res)
 }
 
+func TestRESTverbBlock(t *testing.T) {
+	createEsClient()
+	httpC := createHTTPClient()
+
+	res, err := httpC.Post(base+"/test_deflek2/_search?q=tag:wow",
+		"application/json", bytes.NewBuffer([]byte("{}")))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	testBlocked(t, res)
+}
+
+func TestRESTverbAllow(t *testing.T) {
+	createEsClient()
+	httpC := createHTTPClient()
+
+	res, err := httpC.Post(base+"/test_deflek/_search?q=tag:wow",
+		"application/json", bytes.NewBuffer([]byte("{}")))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	testAllowed(t, res)
+}
+
 //// This might not be a thing in 6.X!
 // func TestFieldStatsAllow(t *testing.T) {
 // 	createEsClient()

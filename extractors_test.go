@@ -4,15 +4,6 @@ import (
 	"testing"
 )
 
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
 func TestExtractBodyMsearch(t *testing.T) {
 	// based on the docs example. modified to include two indices
 	// https://www.elastic.co/guide/en/elasticsearch/reference/current/search-multi-search.html

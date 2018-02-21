@@ -154,7 +154,9 @@ func indexPermitted(trace *Trace, r *http.Request, C *Config) (bool, error) {
 		for _, whitelistedIndex := range ctx.whitelistedIndices {
 			for _, index := range indices {
 				if glob.Glob(whitelistedIndex.Name, index) {
-					allowedIndices = append(allowedIndices, index)
+					if stringInSlice(ctx.r.Method, whitelistedIndex.RESTverbs) {
+						allowedIndices = append(allowedIndices, index)
+					}
 				}
 			}
 		}
@@ -167,4 +169,13 @@ func indexPermitted(trace *Trace, r *http.Request, C *Config) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
 }
