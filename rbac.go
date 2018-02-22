@@ -118,6 +118,10 @@ type requestContext struct {
 	api                     string
 }
 
+func getAPI(r *http.Request) string {
+	return strings.Split(r.URL.EscapedPath(), "/")[1]
+}
+
 func indexPermitted(trace *Trace, r *http.Request, C *Config) (bool, error) {
 	whitelistedIndices, err := getWhitelistedIndices(r, C)
 	if err != nil {
@@ -129,17 +133,16 @@ func indexPermitted(trace *Trace, r *http.Request, C *Config) (bool, error) {
 		indicesStrSlice = append(indicesStrSlice, whitelistedIndex.Name)
 	}
 
-	api := strings.Split(r.URL.EscapedPath(), "/")[1]
 	ctx := requestContext{
 		trace:                   trace,
 		r:                       r,
 		c:                       C,
 		whitelistedIndices:      whitelistedIndices,
 		whitelistedIndicesNames: strings.Join(indicesStrSlice, ","),
-		api: api,
+		api: getAPI(r),
 	}
 
-	if api == "_all" || api == "_search" || api == "*" {
+	if ctx.api == "_all" || ctx.api == "_search" || ctx.api == "*" {
 		mutatePath(ctx)
 	}
 

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
 	"strings"
 )
 
@@ -29,7 +30,7 @@ func extractIndices(ctx requestContext) ([]string, error) {
 	ctx.trace.Indices = indices
 
 	// extract indices from te URI path
-	iu, err := extractURIindices(ctx)
+	iu, err := extractURIindices(ctx.r)
 	if err != nil {
 		return indices, err
 	}
@@ -109,10 +110,11 @@ func extractBodyIndices(api string, body []byte) ([]string, error) {
 }
 
 // extract indices that are specified in the URI
-func extractURIindices(ctx requestContext) ([]string, error) {
+func extractURIindices(r *http.Request) ([]string, error) {
+	index := getAPI(r)
 	var indices []string
-	if len(ctx.api) > 1 && !strings.HasPrefix(ctx.api, "_") {
-		indices = strings.Split(ctx.api, ",")
+	if len(index) > 1 && !strings.HasPrefix(index, "_") {
+		indices = strings.Split(index, ",")
 	}
 
 	return indices, nil

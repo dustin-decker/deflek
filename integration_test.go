@@ -1,5 +1,9 @@
 package main
 
+// these tests require the current build of deflek running with
+// the included `config.example.yaml` file and pointed to an ES
+// instance
+
 import (
 	"bytes"
 	"context"

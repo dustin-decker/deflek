@@ -1,8 +1,28 @@
 package main
 
 import (
+	"net/http"
+	"net/url"
 	"testing"
 )
+
+func TestExtractURIindices(t *testing.T) {
+	var req http.Request
+	req.URL, _ = url.Parse("http://localhost:9200/test1,test2/_search?q=tag:wow")
+
+	indices, err := extractURIindices(&req)
+	if err != nil {
+		t.Error("couldn't extract URI indices, got: ", err)
+	}
+
+	if !stringInSlice("test1", indices) {
+		t.Error("expected 'test' in indices, got: ", indices)
+	}
+
+	if !stringInSlice("test2", indices) {
+		t.Error("expected 'test' in indices, got: ", indices)
+	}
+}
 
 func TestExtractBodyMsearch(t *testing.T) {
 	// based on the docs example. modified to include two indices
