@@ -71,29 +71,26 @@ func extractBodyIndices(api string, body []byte) ([]string, error) {
 	var indices []string
 
 	// special case here.
-	// this API uses a JSON blob on each line
 	// bulk API problably does this too, but I haven't gotten to that yet
-	if api == "_msearch" {
-		// NDJSON. Savages.
-		JSONs := bytes.Split(body, []byte("\n"))
-		for _, JSON := range JSONs {
-			var msB msearchBody
-			json.Unmarshal(JSON, &msB)
+	// NDJSON. Savages.
+	JSONs := bytes.Split(body, []byte("\n"))
+	for _, JSON := range JSONs {
+		var msB msearchBody
+		json.Unmarshal(JSON, &msB)
 
-			if msB.Index != "" {
-				indices = append(indices, strings.Split(msB.Index, ",")...)
-			}
-
-			var msBA msearchBodyArray
-			json.Unmarshal(JSON, &msBA)
-
-			if len(msBA.Index) > 0 {
-				for _, index := range msBA.Index {
-					indices = append(indices, strings.Split(index, ",")...)
-				}
-			}
-
+		if msB.Index != "" {
+			indices = append(indices, strings.Split(msB.Index, ",")...)
 		}
+
+		var msBA msearchBodyArray
+		json.Unmarshal(JSON, &msBA)
+
+		if len(msBA.Index) > 0 {
+			for _, index := range msBA.Index {
+				indices = append(indices, strings.Split(index, ",")...)
+			}
+		}
+
 	}
 
 	// extract indices from the way of mget
