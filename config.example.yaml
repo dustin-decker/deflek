@@ -1,6 +1,7 @@
 listen_interface: 127.0.0.1
 listen_port: 8080
 target: http://localhost:9200
+target: http://127.0.0.1:9200
 anonymous_group: group1
 group_header_name: X-Remote-Groups
 group_header_type: AD

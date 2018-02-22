@@ -33,6 +33,7 @@ type Config struct {
 	ListenPort        int    `yaml:"listen_port"`
 	Target            string
 	TargetPathPrefix  string `yaml:"target_path_prefix"`
+	JSONlogging       bool   `yaml:"json_logging"`
 	WhitelistedRoutes string `yaml:"whitelisted_routes"`
 	AnonymousGroup    string `yaml:"anonymous_group"`
 	GroupHeaderName   string `yaml:"group_header_name"`
@@ -74,8 +75,10 @@ func NewProx(C *Config) *Prox {
 	url, _ := url.Parse(C.Target)
 
 	logger := log.New()
-	// logger.SetHandler(log.MultiHandler(log.StreamHandler(os.Stderr,
-	// 	log.JsonFormat())))
+	if C.JSONlogging {
+		logger.SetHandler(log.MultiHandler(log.StreamHandler(os.Stderr,
+			log.JsonFormat())))
+	}
 
 	return &Prox{
 		config: C,
@@ -127,6 +130,8 @@ func (p *Prox) filterRequest(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		p.log.Error(trace.Error, fields)
+	} else if trace.Code != 200 {
+		p.log.Warn(trace.Message, fields)
 	} else {
 		p.log.Info(trace.Message, fields)
 	}
