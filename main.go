@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"regexp"
 	"time"
 
 	log "github.com/inconshreveable/log15"
@@ -19,27 +18,24 @@ import (
 
 // Prox defines our reverse proxy
 type Prox struct {
-	config        *Config
-	target        *url.URL
-	proxy         *httputil.ReverseProxy
-	routePatterns []*regexp.Regexp
-	log           log.Logger
+	config *Config
+	target *url.URL
+	proxy  *httputil.ReverseProxy
+	log    log.Logger
 }
 
 // Config for reverse proxy settings and RBAC users and groups
 // Unmarshalled from config on disk
 type Config struct {
-	ListenInterface   string `yaml:"listen_interface"`
-	ListenPort        int    `yaml:"listen_port"`
-	Target            string
-	TargetPathPrefix  string `yaml:"target_path_prefix"`
-	JSONlogging       bool   `yaml:"json_logging"`
-	WhitelistedRoutes string `yaml:"whitelisted_routes"`
-	AnonymousGroup    string `yaml:"anonymous_group"`
-	GroupHeaderName   string `yaml:"group_header_name"`
-	GroupHeaderType   string `yaml:"group_header_type"`
-	UserHeaderName    string `yaml:"user_header_name"`
-	RBAC              struct {
+	ListenInterface string `yaml:"listen_interface"`
+	ListenPort      int    `yaml:"listen_port"`
+	Target          string
+	JSONlogging     bool   `yaml:"json_logging"`
+	AnonymousGroup  string `yaml:"anonymous_group"`
+	GroupHeaderName string `yaml:"group_header_name"`
+	GroupHeaderType string `yaml:"group_header_type"`
+	UserHeaderName  string `yaml:"user_header_name"`
+	RBAC            struct {
 		Groups map[string]Permissions
 	}
 }
