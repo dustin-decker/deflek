@@ -21,7 +21,6 @@ rbac:
           rest_verbs:
           - GET
           - POST
-          - PUT
 
       whitelisted_apis:
           - name: _nodes
@@ -46,6 +45,9 @@ rbac:
           - name: _aliases
             rest_verbs:
             - GET
+          - name: _field_stats
+            rest_verbs:
+            - POST
           # for settings update 
           - name: _template
             rest_verbs:
@@ -71,7 +73,6 @@ rbac:
           rest_verbs:
           - GET
           - POST
-          - PUT
 
       whitelisted_apis:
           - name: _nodes
@@ -96,6 +97,9 @@ rbac:
           - name: _aliases
             rest_verbs:
             - GET
+          - name: _field_stats
+            rest_verbs:
+            - POST
 
           # for settings update 
           - name: _template
