@@ -66,10 +66,17 @@ type traceTransport struct {
 func (p *Prox) handleRequest(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	trace := Trace{}
+
+	ctx, err := getRequestContext(r, p.config, &trace)
+	if err != nil {
+		trace.Error = err.Error()
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
 	trans := traceTransport{}
 	p.proxy.Transport = &trans
 
-	ok, err := p.checkRBAC(r, p.config, &trace)
+	ok, err := p.checkRBAC(ctx)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
 	} else if err != nil {

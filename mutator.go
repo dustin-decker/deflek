@@ -17,7 +17,7 @@ import (
 //
 // `*` index pattern gets replaced with whitelisted indices
 //
-func mutatePath(ctx requestContext) {
+func mutatePath(ctx *requestContext) {
 	var indices []string
 	for _, whitelistedIndex := range ctx.whitelistedIndices {
 		if !strings.HasPrefix(whitelistedIndex.Name, ".") {
@@ -36,7 +36,7 @@ func mutatePath(ctx requestContext) {
 // mutate wildcard index patterns that are specified in the body to be whitelisted indices
 // kibana requires use of this function
 //
-func mutateWildcardIndexInBody(ctx requestContext) error {
+func mutateWildcardIndexInBody(ctx *requestContext) error {
 	// this is gross
 	body, err := getBody(ctx.r)
 	if err != nil {

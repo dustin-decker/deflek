@@ -8,18 +8,12 @@ import (
 )
 
 // extract indices from the incoming request
-func extractIndices(ctx requestContext) ([]string, error) {
+func extractIndices(ctx *requestContext) ([]string, error) {
 	var indices []string
-
-	body, err := getBody(ctx.r)
-	if err != nil {
-		return indices, err
-	}
-	ctx.trace.Body = string(body)
 
 	// extract the indices specified in the body, which can be
 	// specified in many different ways depending on the API :[
-	ib, err := extractBodyIndices(ctx.api, body)
+	ib, err := extractBodyIndices(ctx.api, ctx.body)
 	if err != nil {
 		return indices, err
 	}

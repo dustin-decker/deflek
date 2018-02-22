@@ -13,19 +13,21 @@ type Permissions struct {
 	CanManage          bool    `yaml:"can_manage"`
 }
 
-func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *Trace) (bool, error) {
-	user, err := getUser(r, C)
-	if err != nil {
-		return false, err
-	}
-	groups, err := getGroups(r, C)
-	if err != nil {
-		return false, err
-	}
-	trace.User = user
-	trace.Groups = groups
+func (p *Prox) checkRBAC(ctx *requestContext) (bool, error) {
 
-	ok, err := indexPermitted(trace, r, C)
+	user, err := getUser(ctx.r, ctx.C)
+	if err != nil {
+		return false, err
+	}
+	ctx.trace.User = user
+
+	groups, err := getGroups(ctx.r, ctx.C)
+	if err != nil {
+		return false, err
+	}
+	ctx.trace.Groups = groups
+
+	ok, err := indexPermitted(ctx)
 	if err != nil || !ok {
 		return false, err
 	}
@@ -111,21 +113,25 @@ func getWhitelistedIndices(r *http.Request, C *Config) ([]Index, error) {
 type requestContext struct {
 	trace                   *Trace
 	r                       *http.Request
-	c                       *Config
+	C                       *Config
+	body                    []byte
 	whitelistedIndices      []Index
 	whitelistedIndicesNames string
 	indices                 []string
 	api                     string
 }
 
-func getAPI(r *http.Request) string {
-	return strings.Split(r.URL.EscapedPath(), "/")[1]
-}
+func getRequestContext(r *http.Request, C *Config, trace *Trace) (*requestContext, error) {
+	body, err := getBody(r)
+	if err != nil {
+		return nil, err
+	}
+	bodyStr := string(body)
+	trace.Body = bodyStr
 
-func indexPermitted(trace *Trace, r *http.Request, C *Config) (bool, error) {
 	whitelistedIndices, err := getWhitelistedIndices(r, C)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
 	var indicesStrSlice []string
@@ -136,11 +142,21 @@ func indexPermitted(trace *Trace, r *http.Request, C *Config) (bool, error) {
 	ctx := requestContext{
 		trace:                   trace,
 		r:                       r,
-		c:                       C,
+		C:                       C,
+		body:                    body,
 		whitelistedIndices:      whitelistedIndices,
 		whitelistedIndicesNames: strings.Join(indicesStrSlice, ","),
 		api: getAPI(r),
 	}
+
+	return &ctx, nil
+}
+
+func getAPI(r *http.Request) string {
+	return strings.Split(r.URL.EscapedPath(), "/")[1]
+}
+
+func indexPermitted(ctx *requestContext) (bool, error) {
 
 	if ctx.api == "_all" || ctx.api == "_search" || ctx.api == "*" {
 		mutatePath(ctx)
