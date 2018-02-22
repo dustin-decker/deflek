@@ -7,6 +7,12 @@ import (
 	glob "github.com/ryanuber/go-glob"
 )
 
+// Permissions structure for groups and users
+type Permissions struct {
+	WhitelistedIndices []Index `yaml:"whitelisted_indices"`
+	CanManage          bool    `yaml:"can_manage"`
+}
+
 func (p *Prox) checkRBAC(r *http.Request, C *Config, trace *Trace) (bool, error) {
 	user, err := getUser(r, C)
 	if err != nil {
