@@ -54,18 +54,24 @@ func createEsClient() *elastic.Client {
 		"test_deflek2",
 		"secret_stuff",
 		"globby-test"}
+
+	indexCreateBody := `
+{
+	"settings" : {
+		"index" : {
+			"number_of_shards" : 1, 
+			"number_of_replicas" : 0 
+		}
+	}
+}`
 	for _, index := range testIndices {
 		exists, err := c.IndexExists(index).Do(ctx)
 		if err != nil {
 			log.Fatal(err)
 		}
 		if !exists {
-			c.CreateIndex(index).Do(ctx)
-			c.Index().Index("secret_stuff").Id("1").OpType("index")
-			c.Index().Index("test_deflek").Id("1").OpType("index")
-			c.Index().Index("test_deflek2").Id("1").OpType("index")
-			c.Index().Index("globby-test").Id("1").OpType("index")
-
+			c.CreateIndex(index).Body(indexCreateBody).Do(ctx)
+			c.Index().Index(index).Id("1").OpType("index").Do(ctx)
 		}
 	}
 	return c
