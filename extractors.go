@@ -13,7 +13,7 @@ func extractIndices(ctx *requestContext) ([]string, error) {
 
 	// extract the indices specified in the body, which can be
 	// specified in many different ways depending on the API :[
-	ib, err := extractBodyIndices(ctx.api, ctx.body)
+	ib, err := extractBodyIndices(ctx.firstPathComponent, ctx.body)
 	if err != nil {
 		return indices, err
 	}
@@ -21,7 +21,7 @@ func extractIndices(ctx *requestContext) ([]string, error) {
 		indices = append(indices, ib...)
 	}
 	ctx.indices = indices
-	ctx.trace.Indices = indices
+	ctx.trace.Access = indices
 
 	// extract indices from te URI path
 	iu, err := extractURIindices(ctx.r)
@@ -32,7 +32,7 @@ func extractIndices(ctx *requestContext) ([]string, error) {
 		indices = append(indices, iu...)
 	}
 	ctx.indices = indices
-	ctx.trace.Indices = indices
+	ctx.trace.Access = indices
 
 	return indices, nil
 }
@@ -105,11 +105,21 @@ func extractBodyIndices(api string, body []byte) ([]string, error) {
 
 // extract indices that are specified in the URI
 func extractURIindices(r *http.Request) ([]string, error) {
-	index := getAPI(r)
+	index := getFirstPathComponent(r)
 	var indices []string
 	if len(index) > 1 && !strings.HasPrefix(index, "_") {
 		indices = strings.Split(index, ",")
 	}
 
 	return indices, nil
+}
+
+// extract API that are specified in the URI
+func extractAPI(r *http.Request) string {
+	api := getFirstPathComponent(r)
+	if len(api) > 1 && strings.HasPrefix(api, "_") {
+		return api
+	}
+
+	return ""
 }

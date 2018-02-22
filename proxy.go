@@ -21,12 +21,6 @@ type Prox struct {
 	log    log.Logger
 }
 
-// Index struct defines index and REST verbs allowed
-type Index struct {
-	Name      string
-	RESTverbs []string `yaml:"rest_verbs"`
-}
-
 // Trace - Request error handling wrapper on the handler
 type Trace struct {
 	Path    string
@@ -38,7 +32,7 @@ type Trace struct {
 	User    string
 	Groups  []string
 	Body    string
-	Indices []string
+	Access  []string
 }
 
 // NewProx returns new reverse proxy instance
@@ -103,7 +97,7 @@ func (p *Prox) handleRequest(w http.ResponseWriter, r *http.Request) {
 		"user":    trace.User,
 		"groups":  trace.Groups,
 		"body":    trace.Body,
-		"indices": trace.Indices,
+		"access":  trace.Access,
 	}
 
 	if err != nil {

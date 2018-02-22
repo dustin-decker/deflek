@@ -10,7 +10,20 @@ import (
 // Permissions structure for groups and users
 type Permissions struct {
 	WhitelistedIndices []Index `yaml:"whitelisted_indices"`
+	WhitelistedAPIs    []API   `yaml:"whitelisted_apis"`
 	CanManage          bool    `yaml:"can_manage"`
+}
+
+// Index struct defines index and REST verbs allowed
+type Index struct {
+	Name      string
+	RESTverbs []string `yaml:"rest_verbs"`
+}
+
+// API struct defines index and REST verbs allowed
+type API struct {
+	Name      string
+	RESTverbs []string `yaml:"rest_verbs"`
 }
 
 func (p *Prox) checkRBAC(ctx *requestContext) (bool, error) {
@@ -27,7 +40,12 @@ func (p *Prox) checkRBAC(ctx *requestContext) (bool, error) {
 	}
 	ctx.trace.Groups = groups
 
-	ok, err := indexPermitted(ctx)
+	ok, err := apiPermitted(ctx)
+	if err != nil || !ok {
+		return false, err
+	}
+
+	ok, err = indexPermitted(ctx)
 	if err != nil || !ok {
 		return false, err
 	}
@@ -110,6 +128,24 @@ func getWhitelistedIndices(r *http.Request, C *Config) ([]Index, error) {
 	return indices, nil
 }
 
+func getWhitelistedAPIs(r *http.Request, C *Config) ([]API, error) {
+	var apis []API
+	groups, err := getGroups(r, C)
+	if err != nil {
+		return apis, err
+	}
+
+	for _, group := range groups {
+		if configGroup, ok := C.RBAC.Groups[group]; ok {
+			for _, configAPI := range configGroup.WhitelistedAPIs {
+				apis = append(apis, configAPI)
+			}
+		}
+	}
+
+	return apis, nil
+}
+
 type requestContext struct {
 	trace                   *Trace
 	r                       *http.Request
@@ -117,8 +153,9 @@ type requestContext struct {
 	body                    []byte
 	whitelistedIndices      []Index
 	whitelistedIndicesNames string
+	whitelistedAPIs         []API
 	indices                 []string
-	api                     string
+	firstPathComponent      string
 }
 
 func getRequestContext(r *http.Request, C *Config, trace *Trace) (*requestContext, error) {
@@ -134,6 +171,11 @@ func getRequestContext(r *http.Request, C *Config, trace *Trace) (*requestContex
 		return nil, err
 	}
 
+	whitelistedAPIs, err := getWhitelistedAPIs(r, C)
+	if err != nil {
+		return nil, err
+	}
+
 	var indicesStrSlice []string
 	for _, whitelistedIndex := range whitelistedIndices {
 		indicesStrSlice = append(indicesStrSlice, whitelistedIndex.Name)
@@ -145,20 +187,42 @@ func getRequestContext(r *http.Request, C *Config, trace *Trace) (*requestContex
 		C:                       C,
 		body:                    body,
 		whitelistedIndices:      whitelistedIndices,
+		whitelistedAPIs:         whitelistedAPIs,
 		whitelistedIndicesNames: strings.Join(indicesStrSlice, ","),
-		api: getAPI(r),
+		firstPathComponent:      getFirstPathComponent(r),
 	}
 
 	return &ctx, nil
 }
 
-func getAPI(r *http.Request) string {
+func getFirstPathComponent(r *http.Request) string {
 	return strings.Split(r.URL.EscapedPath(), "/")[1]
+}
+
+func apiPermitted(ctx *requestContext) (bool, error) {
+	api := extractAPI(ctx.r)
+
+	if len(api) > 0 {
+		for _, whitelistedAPI := range ctx.whitelistedAPIs {
+			// match index patterns in the RBAC config again patterns
+			// that were extracted (both support globs)
+			if glob.Glob(whitelistedAPI.Name, api) {
+				// also enforce REST verbs that are permitted on the index
+				if stringInSlice(ctx.r.Method, whitelistedAPI.RESTverbs) {
+					return true, nil
+				}
+			}
+		}
+		return false, nil
+	}
+	return true, nil
 }
 
 func indexPermitted(ctx *requestContext) (bool, error) {
 
-	if ctx.api == "_all" || ctx.api == "_search" || ctx.api == "*" {
+	if ctx.firstPathComponent == "_all" ||
+		ctx.firstPathComponent == "_search" ||
+		ctx.firstPathComponent == "*" {
 		mutatePath(ctx)
 	}
 

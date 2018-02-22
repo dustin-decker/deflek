@@ -1,7 +1,7 @@
 listen_interface: 127.0.0.1
 listen_port: 8080
-target: http://localhost:9200
 target: http://127.0.0.1:9200
+json_logging: false
 anonymous_group: group1
 group_header_name: X-Remote-Groups
 group_header_type: AD
@@ -11,22 +11,50 @@ rbac:
   groups:
     group1:
       whitelisted_indices:
-        - name: .kibana
-          rest_verbs:
-          - GET
-          - POST
         - name: secret_stuff
           rest_verbs:
           - GET
           - POST
-      can_manage: false
 
-    group2:
-      whitelisted_indices:
+        ### req'd for kibana
         - name: .kibana
           rest_verbs:
           - GET
           - POST
+          - PUT
+
+      whitelisted_apis:
+          - name: _nodes
+            rest_verbs:
+            - GET
+          - name: _msearch
+            rest_verbs:
+            - POST
+          - name: _all
+            rest_verbs:
+            - GET
+            - POST
+          - name: _search
+            rest_verbs:
+            - GET
+          - name: _mget
+            rest_verbs:
+            - POST
+          - name: _mapping
+            rest_verbs:
+            - GET
+          - name: _aliases
+            rest_verbs:
+            - GET
+          # for settings update 
+          - name: _template
+            rest_verbs:
+            - PUT
+
+      can_manage: false
+
+    group2:
+      whitelisted_indices:
         - name: test_deflek
           rest_verbs:
           - GET
@@ -34,4 +62,44 @@ rbac:
         - name: test_deflek2
           rest_verbs:
           - GET
-      can_manage: true
+        - name: globby-*
+          rest_verbs:
+          - GET
+
+        ### req'd for kibana
+        - name: .kibana
+          rest_verbs:
+          - GET
+          - POST
+          - PUT
+
+      whitelisted_apis:
+          - name: _nodes
+            rest_verbs:
+            - GET
+          - name: _msearch
+            rest_verbs:
+            - POST
+          - name: _all
+            rest_verbs:
+            - GET
+            - POST
+          - name: _search
+            rest_verbs:
+            - GET
+          - name: _mget
+            rest_verbs:
+            - POST
+          - name: _mapping
+            rest_verbs:
+            - GET
+          - name: _aliases
+            rest_verbs:
+            - GET
+
+          # for settings update 
+          - name: _template
+            rest_verbs:
+            - PUT
+
+      can_manage: false
