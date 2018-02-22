@@ -2,7 +2,7 @@
 
 NOT CURRENTLY USABLE, IN THE PROCESSES OF REWRITE
 
-Reverse proxy to add index-level RBAC to Elasticsearch.
+Reverse proxy that adds index-level RBAC to Elasticsearch.
 
 ## Authentication
 

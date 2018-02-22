@@ -75,6 +75,8 @@ func extractBodyIndices(api string, body []byte) ([]string, error) {
 	// NDJSON. Savages.
 	JSONs := bytes.Split(body, []byte("\n"))
 	for _, JSON := range JSONs {
+
+		// attempt older string syntax
 		var msB msearchBody
 		json.Unmarshal(JSON, &msB)
 
@@ -82,6 +84,7 @@ func extractBodyIndices(api string, body []byte) ([]string, error) {
 			indices = append(indices, strings.Split(msB.Index, ",")...)
 		}
 
+		// attempt newer array syntax
 		var msBA msearchBodyArray
 		json.Unmarshal(JSON, &msBA)
 
