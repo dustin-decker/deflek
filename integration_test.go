@@ -329,18 +329,3 @@ func TestWildcardURImutator(t *testing.T) {
 
 	testAllowed(t, res)
 }
-
-//// This might not be a thing in 6.X!
-// func TestFieldStatsAllow(t *testing.T) {
-// 	createEsClient()
-// 	httpC := createHTTPClient()
-
-// 	res, err := httpC.Post(base+"/*/_field_stats",
-// 		"application/json",
-// 		bytes.NewReader([]byte("{}")))
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	testAllowed(t, res)
-// }
