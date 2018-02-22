@@ -17,7 +17,10 @@ type authTransport struct {
 	Transport http.RoundTripper
 }
 
+// custom RoundTrip injects authentication headers into the test client
 func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// NOTE: this client is configured for the `config.example.yaml` included
+	//
 	req.Header.Add("X-Remote-User", "dustind")
 	req.Header.Add("X-Remote-Groups", "OU=thing,CN=group2,DC=something")
 	tr := &http.Transport{}

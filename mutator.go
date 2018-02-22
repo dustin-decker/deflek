@@ -8,7 +8,16 @@ import (
 	"strings"
 )
 
-func mutateRequest(ctx requestContext) {
+// mutate things that aren't allowed in the path to things that are.
+// kibana requires use of this function
+//
+// `_all` gets replaced with whitelisted indices
+//
+// `_search` API gets prefixed with whitelisted indices
+//
+// `*` index pattern gets replaced with whitelisted indices
+//
+func mutatePath(ctx requestContext) {
 	var indices []string
 	for _, whitelistedIndex := range ctx.whitelistedIndices {
 		if !strings.HasPrefix(whitelistedIndex.Name, ".") {
@@ -24,6 +33,9 @@ func mutateRequest(ctx requestContext) {
 	ctx.r.URL = reqURL
 }
 
+// mutate wildcard index patterns that are specified in the body to be whitelisted indices
+// kibana requires use of this function
+//
 func mutateWildcardIndexInBody(ctx requestContext) error {
 	// this is gross
 	body, err := getBody(ctx.r)

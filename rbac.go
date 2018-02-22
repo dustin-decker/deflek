@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -103,20 +102,6 @@ func getWhitelistedIndices(r *http.Request, C *Config) ([]Index, error) {
 	return indices, nil
 }
 
-// func indexBodyPermitted(index string, r *http.Request, C *Config) (bool, error) {
-// 	groups, _ := getGroups(r, C)
-// 	for _, group := range groups {
-// 		if configGroup, ok := C.RBAC.Groups[group]; ok {
-// 			for _, configIndex := range configGroup.WhitelistedIndices {
-// 				if glob.Glob(configIndex.Name, index) {
-// 					return true, nil
-// 				}
-// 			}
-// 		}
-// 	}
-// 	return false, nil
-// }
-
 type requestContext struct {
 	trace                   *Trace
 	r                       *http.Request
@@ -161,7 +146,7 @@ func indexPermitted(trace *Trace, r *http.Request, C *Config) (bool, error) {
 
 	// support searching wild card indices
 	// req'd by Kibana Visual Builder
-	// this implementation is gros
+	// this implementation is gross
 	for i, index := range indices {
 		if index == "*" {
 			err := mutateWildcardIndexInBody(ctx)
@@ -173,10 +158,14 @@ func indexPermitted(trace *Trace, r *http.Request, C *Config) (bool, error) {
 		}
 	}
 
+	// if this request operates on any indices, apply RBAC logic
 	if len(indices) > 0 {
 		for _, whitelistedIndex := range ctx.whitelistedIndices {
 			for _, index := range indices {
+				// match index patterns in the RBAC config again patterns
+				// that were extracted (both support globs)
 				if glob.Glob(whitelistedIndex.Name, index) {
+					// also enforce REST verbs that are permitted on the index
 					if stringInSlice(ctx.r.Method, whitelistedIndex.RESTverbs) {
 						allowedIndices = append(allowedIndices, index)
 					}
@@ -190,10 +179,6 @@ func indexPermitted(trace *Trace, r *http.Request, C *Config) (bool, error) {
 	if len(allowedIndices) >= len(indices) {
 		return true, nil
 	}
-	fmt.Println(allowedIndices)
-	fmt.Println(indices)
-	fmt.Println("here")
-
 	return false, nil
 }
 
