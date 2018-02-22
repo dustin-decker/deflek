@@ -204,10 +204,10 @@ func apiPermitted(ctx *requestContext) (bool, error) {
 
 	if len(api) > 0 {
 		for _, whitelistedAPI := range ctx.whitelistedAPIs {
-			// match index patterns in the RBAC config again patterns
+			// match API patterns in the RBAC config against patterns
 			// that were extracted (both support globs)
 			if glob.Glob(whitelistedAPI.Name, api) {
-				// also enforce REST verbs that are permitted on the index
+				// also enforce REST verbs that are permitted on the API
 				if stringInSlice(ctx.r.Method, whitelistedAPI.RESTverbs) {
 					return true, nil
 				}
@@ -251,7 +251,7 @@ func indexPermitted(ctx *requestContext) (bool, error) {
 	if len(indices) > 0 {
 		for _, whitelistedIndex := range ctx.whitelistedIndices {
 			for _, index := range indices {
-				// match index patterns in the RBAC config again patterns
+				// match index patterns in the RBAC config against patterns
 				// that were extracted (both support globs)
 				if glob.Glob(whitelistedIndex.Name, index) {
 					// also enforce REST verbs that are permitted on the index
