@@ -148,7 +148,7 @@ func indexPermitted(trace *Trace, r *http.Request, C *Config) (bool, error) {
 		api: api,
 	}
 
-	if api == "_all" || api == "_search" {
+	if api == "_all" || api == "_search" || api == "*" {
 		mutateRequest(ctx)
 	}
 

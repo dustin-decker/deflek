@@ -18,6 +18,7 @@ func mutateRequest(ctx requestContext) {
 	indicesAsURI := strings.Join(indices, ",")
 	escapedPath := ctx.r.URL.EscapedPath()
 	escapedPath = strings.TrimPrefix(escapedPath, "/_all")
+	escapedPath = strings.TrimPrefix(escapedPath, "/*")
 	urlStr := "/" + indicesAsURI + escapedPath
 	reqURL, _ := url.Parse(urlStr)
 	ctx.r.URL = reqURL
