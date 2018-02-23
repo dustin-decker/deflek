@@ -6,7 +6,7 @@ Reverse proxy that adds index-level RBAC to Elasticsearch.
 
 Deflek man-in-the-middles requests to elasticsearch in order to apply a best effort to filter access
 and mutate requests to be compatible, and to provide an audit log. It is not perfect, and probably never will be. Elasticsearch needs security to be baked in to do it properly. There are solutions that come closer to this,
-like [Search Guard]https://github.com/floragunncom/search-guard() or Elastic's own [X-pack security](https://www.elastic.co/guide/en/x-pack/current/xpack-security.html), but both of those are also bolt-on security, in
+like [Search Guard](https://github.com/floragunncom/search-guard) or Elastic's own [X-pack security](https://www.elastic.co/guide/en/x-pack/current/xpack-security.html), but both of those are also bolt-on security, in
 the form of an Elasticsearch plugin. So use it at your own risk! Help make it better! Make a PR to add proper RBAC
 to the core of Elasticsearch!
 
