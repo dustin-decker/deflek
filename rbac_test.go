@@ -118,7 +118,7 @@ func TestGetUser(t *testing.T) {
 	}
 
 	if user != "dustind" {
-		t.Error("got %s, expected %s", user, "dustind")
+		t.Errorf("got %s, expected %s", user, "dustind")
 
 	}
 }
