@@ -25,11 +25,12 @@ It currently requires fronting with a SSO authentication proxy (such as [saml-pr
 deflek can enforce RBAC on HTTP methods for every HTTP API elasticsearch offers
 
 aditionally, deflek has index awareness for the following APIs:
+
 - _mget
 - _msearch
 - _all
 - _search
-- direct index access (/<index>/1)
+- direct index access (/< index >/1)
 
 deflek can also mutate wildcard requests on the fly, to support software like Kibana.
 
