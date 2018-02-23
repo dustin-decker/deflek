@@ -90,3 +90,25 @@ func TestExtractBodyMget(t *testing.T) {
 		t.Error("expected 'test2' in indices, got: ", indices)
 	}
 }
+
+func TestExtractAPI(t *testing.T) {
+	ctx, err := getTestContext("/_nodes/local", "")
+	if err != nil {
+		t.Error("could not get context: ", err)
+	}
+
+	api := extractAPI(ctx.r)
+	if api != "_nodes" {
+		t.Errorf("got %s, expected %s", api, "_nodes")
+	}
+
+	ctx, err = getTestContext("/some_index/local", "")
+	if err != nil {
+		t.Error("could not get context: ", err)
+	}
+
+	api = extractAPI(ctx.r)
+	if api != "" {
+		t.Errorf("got %s, expected %s", api, "")
+	}
+}
