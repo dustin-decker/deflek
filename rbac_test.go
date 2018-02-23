@@ -47,6 +47,30 @@ func TestIndexNotPermitted(t *testing.T) {
 	}
 }
 
+func TestAPIPermitted(t *testing.T) {
+	ctx, err := getTestContext("/_nodes/local")
+	if err != nil {
+		t.Error("could not get context: ", err)
+	}
+
+	ok, err := apiPermitted(ctx)
+	if !ok || err != nil {
+		t.Error("API permitted or err: ", err)
+	}
+}
+
+func TestAPINotPermitted(t *testing.T) {
+	ctx, err := getTestContext("/_cluster/settings")
+	if err != nil {
+		t.Error("could not get context: ", err)
+	}
+
+	ok, err := apiPermitted(ctx)
+	if ok || err != nil {
+		t.Error("API permitted or err: ", err)
+	}
+}
+
 func TestGetWhitelistedIndices(t *testing.T) {
 
 	expectedIndices := []Index{
