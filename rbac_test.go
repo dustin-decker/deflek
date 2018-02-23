@@ -8,8 +8,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func getTestContext(path string) (*requestContext, error) {
-	req, _ := http.NewRequest("GET", "http://localhost:9200"+path, bytes.NewBufferString(""))
+func getTestContext(path string, body string) (*requestContext, error) {
+	req, _ := http.NewRequest("GET", "http://localhost:9200"+path, bytes.NewBufferString(body))
 	req.Header.Add("X-Remote-User", "dustind")
 	req.Header.Add("X-Remote-Groups", "OU=thing,CN=group2,DC=something")
 
@@ -24,7 +24,7 @@ func getTestContext(path string) (*requestContext, error) {
 }
 
 func TestIndexPermitted(t *testing.T) {
-	ctx, err := getTestContext("/*/_search")
+	ctx, err := getTestContext("/*/_search", "")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
@@ -36,7 +36,7 @@ func TestIndexPermitted(t *testing.T) {
 }
 
 func TestIndexNotPermitted(t *testing.T) {
-	ctx, err := getTestContext("/secret_stuff/_search")
+	ctx, err := getTestContext("/secret_stuff/_search", "")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
@@ -48,7 +48,7 @@ func TestIndexNotPermitted(t *testing.T) {
 }
 
 func TestAPIPermitted(t *testing.T) {
-	ctx, err := getTestContext("/_nodes/local")
+	ctx, err := getTestContext("/_nodes/local", "")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
@@ -60,7 +60,7 @@ func TestAPIPermitted(t *testing.T) {
 }
 
 func TestAPINotPermitted(t *testing.T) {
-	ctx, err := getTestContext("/_cluster/settings")
+	ctx, err := getTestContext("/_cluster/settings", "")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
