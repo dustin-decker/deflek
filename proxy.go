@@ -8,10 +8,29 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"path"
 	"time"
 
 	log "github.com/inconshreveable/log15"
+	yaml "gopkg.in/yaml.v2"
 )
+
+func (C *Config) getConf() *Config {
+
+	pwd, _ := os.Getwd()
+	yamlFile, err := ioutil.ReadFile(path.Join(pwd, "config.yaml"))
+	if err != nil {
+		log.Error(err.Error())
+		os.Exit(1)
+	}
+	err = yaml.Unmarshal(yamlFile, C)
+	if err != nil {
+		log.Error(err.Error())
+		os.Exit(1)
+	}
+
+	return C
+}
 
 // Prox defines our reverse proxy
 type Prox struct {

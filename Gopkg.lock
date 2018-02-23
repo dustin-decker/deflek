@@ -8,6 +8,17 @@
   version = "v1.7.0"
 
 [[projects]]
+  name = "github.com/google/go-cmp"
+  packages = [
+    "cmp",
+    "cmp/internal/diff",
+    "cmp/internal/function",
+    "cmp/internal/value"
+  ]
+  revision = "3af367b6b30c263d47e8895973edcca9a49cf029"
+  version = "v0.2.0"
+
+[[projects]]
   name = "github.com/inconshreveable/log15"
   packages = ["."]
   revision = "0decfc6c20d9ca0ad143b0e89dcaa20f810b4fb3"
@@ -16,7 +27,12 @@
 [[projects]]
   branch = "master"
   name = "github.com/mailru/easyjson"
-  packages = [".","buffer","jlexer","jwriter"]
+  packages = [
+    ".",
+    "buffer",
+    "jlexer",
+    "jwriter"
+  ]
   revision = "32fa128f234d041f196a9f3e0fea5ac9772c08e1"
 
 [[projects]]
@@ -33,7 +49,11 @@
 
 [[projects]]
   name = "github.com/olivere/elastic"
-  packages = [".","config","uritemplates"]
+  packages = [
+    ".",
+    "config",
+    "uritemplates"
+  ]
   revision = "9f4560b20fb3bd4bb855fada3e6feea59b26ce66"
   version = "v6.1.7"
 
@@ -64,7 +84,10 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix","windows"]
+  packages = [
+    "unix",
+    "windows"
+  ]
   revision = "37707fdb30a5b38865cfb95e5aab41707daec7fd"
 
 [[projects]]
@@ -76,6 +99,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "546bd2f7752397e63f51eaa0f97a8aa62f4b9ddc9ec457d83d4493ca10561096"
+  inputs-digest = "57dc5823df56b1db0765e4eabfaa633d0a5c478c79993635c932e0533df3b992"
   solver-name = "gps-cdcl"
   solver-version = 1

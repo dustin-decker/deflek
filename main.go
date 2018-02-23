@@ -2,13 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"os"
-	"path"
-
-	log "github.com/inconshreveable/log15"
-	yaml "gopkg.in/yaml.v2"
 )
 
 // Config for reverse proxy settings and RBAC users and groups
@@ -25,23 +19,6 @@ type Config struct {
 	RBAC            struct {
 		Groups map[string]Permissions
 	}
-}
-
-func (C *Config) getConf() *Config {
-
-	pwd, _ := os.Getwd()
-	yamlFile, err := ioutil.ReadFile(path.Join(pwd, "config.yaml"))
-	if err != nil {
-		log.Error(err.Error())
-		os.Exit(1)
-	}
-	err = yaml.Unmarshal(yamlFile, C)
-	if err != nil {
-		log.Error(err.Error())
-		os.Exit(1)
-	}
-
-	return C
 }
 
 func main() {
