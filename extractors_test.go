@@ -27,10 +27,11 @@ func TestExtractURIindices(t *testing.T) {
 func TestExtractBodyMsearch(t *testing.T) {
 	// based on the docs example. modified to include two indices
 	// https://www.elastic.co/guide/en/elasticsearch/reference/current/search-multi-search.html
+	// added array syntax
 	body := `
 {"index" : "test"}
 {"query" : {"match_all" : {}}, "from" : 0, "size" : 10}
-{"index" : "test2", "search_type" : "dfs_query_then_fetch"}
+{"index" : ["test2","test3"], "search_type" : "dfs_query_then_fetch"}
 {"query" : {"match_all" : {}}}
 {}
 {"query" : {"match_all" : {}}}
@@ -50,6 +51,10 @@ func TestExtractBodyMsearch(t *testing.T) {
 	}
 
 	if !stringInSlice("test2", indices) {
+		t.Error("expected 'test' in indices, got: ", indices)
+	}
+
+	if !stringInSlice("test3", indices) {
 		t.Error("expected 'test' in indices, got: ", indices)
 	}
 }
