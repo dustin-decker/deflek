@@ -108,7 +108,19 @@ func TestGetWhitelistedIndices(t *testing.T) {
 }
 
 func TestGetUser(t *testing.T) {
+	ctx, err := getTestContext("/", "")
+	if err != nil {
+		t.Error("could not get context: ", err)
+	}
+	user, err := getUser(ctx.r, ctx.C)
+	if err != nil {
+		t.Error("could not get user: ", err)
+	}
 
+	if user != "dustind" {
+		t.Error("got %s, expected %s", user, "dustind")
+
+	}
 }
 
 func indexInSlice(a Index, indices []Index) bool {
