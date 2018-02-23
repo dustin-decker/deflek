@@ -92,14 +92,12 @@ func TestGetWhitelistedIndices(t *testing.T) {
 			}},
 	}
 
-	var c Config
-	c.getConf()
+	ctx, err := getTestContext("/", "")
+	if err != nil {
+		t.Error("could not get context: ", err)
+	}
 
-	req, _ := http.NewRequest("GET", "http://localhost:9200/_cluster/health", nil)
-	req.Header.Add("X-Remote-User", "dustind")
-	req.Header.Add("X-Remote-Groups", "OU=thing,CN=group2,DC=something")
-
-	extractedIndices, err := getWhitelistedIndices(req, &c)
+	extractedIndices, err := getWhitelistedIndices(ctx.r, ctx.C)
 	if err != nil {
 		t.Error("got error while getting whitelisted indices: ", err)
 	}
@@ -107,6 +105,10 @@ func TestGetWhitelistedIndices(t *testing.T) {
 	if diff := cmp.Diff(expectedIndices, extractedIndices); diff != "" {
 		t.Errorf("unexpected difference: (-got +want)\n%s", diff)
 	}
+}
+
+func TestGetUser(t *testing.T) {
+
 }
 
 func indexInSlice(a Index, indices []Index) bool {
