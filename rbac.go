@@ -26,6 +26,55 @@ type API struct {
 	RESTverbs []string `yaml:"rest_verbs"`
 }
 
+type requestContext struct {
+	trace                   *Trace
+	r                       *http.Request
+	C                       *Config
+	body                    []byte
+	whitelistedIndices      []Index
+	whitelistedIndicesNames string
+	whitelistedAPIs         []API
+	indices                 []string
+	firstPathComponent      string
+}
+
+func getRequestContext(r *http.Request, C *Config, trace *Trace) (*requestContext, error) {
+	body, err := getBody(r)
+	if err != nil {
+		return nil, err
+	}
+	bodyStr := string(body)
+	trace.Body = bodyStr
+
+	whitelistedIndices, err := getWhitelistedIndices(r, C)
+	if err != nil {
+		return nil, err
+	}
+
+	whitelistedAPIs, err := getWhitelistedAPIs(r, C)
+	if err != nil {
+		return nil, err
+	}
+
+	var indicesStrSlice []string
+	for _, whitelistedIndex := range whitelistedIndices {
+		indicesStrSlice = append(indicesStrSlice, whitelistedIndex.Name)
+	}
+
+	ctx := requestContext{
+		trace:                   trace,
+		r:                       r,
+		C:                       C,
+		body:                    body,
+		whitelistedIndices:      whitelistedIndices,
+		whitelistedAPIs:         whitelistedAPIs,
+		whitelistedIndicesNames: strings.Join(indicesStrSlice, ","),
+		firstPathComponent:      getFirstPathComponent(r),
+	}
+
+	return &ctx, nil
+}
+
 func (p *Prox) checkRBAC(ctx *requestContext) (bool, error) {
 
 	user, err := getUser(ctx.r, ctx.C)
@@ -144,55 +193,6 @@ func getWhitelistedAPIs(r *http.Request, C *Config) ([]API, error) {
 	}
 
 	return apis, nil
-}
-
-type requestContext struct {
-	trace                   *Trace
-	r                       *http.Request
-	C                       *Config
-	body                    []byte
-	whitelistedIndices      []Index
-	whitelistedIndicesNames string
-	whitelistedAPIs         []API
-	indices                 []string
-	firstPathComponent      string
-}
-
-func getRequestContext(r *http.Request, C *Config, trace *Trace) (*requestContext, error) {
-	body, err := getBody(r)
-	if err != nil {
-		return nil, err
-	}
-	bodyStr := string(body)
-	trace.Body = bodyStr
-
-	whitelistedIndices, err := getWhitelistedIndices(r, C)
-	if err != nil {
-		return nil, err
-	}
-
-	whitelistedAPIs, err := getWhitelistedAPIs(r, C)
-	if err != nil {
-		return nil, err
-	}
-
-	var indicesStrSlice []string
-	for _, whitelistedIndex := range whitelistedIndices {
-		indicesStrSlice = append(indicesStrSlice, whitelistedIndex.Name)
-	}
-
-	ctx := requestContext{
-		trace:                   trace,
-		r:                       r,
-		C:                       C,
-		body:                    body,
-		whitelistedIndices:      whitelistedIndices,
-		whitelistedAPIs:         whitelistedAPIs,
-		whitelistedIndicesNames: strings.Join(indicesStrSlice, ","),
-		firstPathComponent:      getFirstPathComponent(r),
-	}
-
-	return &ctx, nil
 }
 
 func getFirstPathComponent(r *http.Request) string {
