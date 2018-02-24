@@ -22,36 +22,7 @@ rbac:
           - GET
           - POST
 
-      whitelisted_apis:
-          - name: _nodes
-            rest_verbs:
-            - GET
-          - name: _msearch
-            rest_verbs:
-            - POST
-          - name: _all
-            rest_verbs:
-            - GET
-            - POST
-          - name: _search
-            rest_verbs:
-            - GET
-          - name: _mget
-            rest_verbs:
-            - POST
-          - name: _mapping
-            rest_verbs:
-            - GET
-          - name: _aliases
-            rest_verbs:
-            - GET
-          - name: _field_stats
-            rest_verbs:
-            - POST
-          # for settings update 
-          - name: _template
-            rest_verbs:
-            - PUT
+      whitelisted_apis: *kibana
 
       can_manage: false
 
@@ -74,7 +45,7 @@ rbac:
           - GET
           - POST
 
-      whitelisted_apis:
+      whitelisted_apis: &kibana
           - name: _nodes
             rest_verbs:
             - GET
