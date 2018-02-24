@@ -61,6 +61,10 @@ type msearchBodyArray struct {
 	// XXX: ...
 }
 
+type bulk struct {
+	Index string `json:"_index"`
+}
+
 // extract indices from the incoming request body
 func extractBodyIndices(api string, body []byte) ([]string, error) {
 	var indices []string
@@ -86,6 +90,15 @@ func extractBodyIndices(api string, body []byte) ([]string, error) {
 		if len(msBA.Index) > 0 {
 			for _, index := range msBA.Index {
 				indices = append(indices, strings.Split(index, ",")...)
+			}
+		}
+
+		// bulk API
+		m := map[string]bulk{}
+		json.Unmarshal(JSON, &m)
+		for _, v := range m {
+			if len(v.Index) > 0 {
+				indices = append(indices, strings.Split(v.Index, ",")...)
 			}
 		}
 

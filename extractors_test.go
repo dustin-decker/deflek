@@ -91,6 +91,36 @@ func TestExtractBodyMget(t *testing.T) {
 	}
 }
 
+func TestExtractBodyBulk(t *testing.T) {
+	// based on the docs example. modified to include two indices
+	// https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-bulk.html
+	body := `
+{ "index" : { "_index" : "test1", "_type" : "_doc", "_id" : "1" } }
+{ "field1" : "value1" }
+{ "delete" : { "_index" : "test2", "_type" : "_doc", "_id" : "2" } }
+{ "create" : { "_index" : "test3", "_type" : "_doc", "_id" : "3" } }
+{ "field1" : "value3" }
+{ "doc" : {"field2" : "value2"} }
+`
+
+	indices, err := extractBodyIndices("_bulk", []byte(body))
+	if err != nil {
+		t.Error("failed to extract body: ", err)
+	}
+
+	if !stringInSlice("test1", indices) {
+		t.Error("expected 'test1' in indices, got: ", indices)
+	}
+
+	if !stringInSlice("test2", indices) {
+		t.Error("expected 'test2' in indices, got: ", indices)
+	}
+
+	if !stringInSlice("test3", indices) {
+		t.Error("expected 'test3' in indices, got: ", indices)
+	}
+}
+
 func TestExtractAPI(t *testing.T) {
 	ctx, err := getTestContext("/_nodes/local", "")
 	if err != nil {
