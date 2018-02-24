@@ -96,7 +96,6 @@ func TestExtractAPI(t *testing.T) {
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
-
 	api := extractAPI(ctx.r)
 	if api != "_nodes" {
 		t.Errorf("got %s, expected %s", api, "_nodes")
@@ -106,9 +105,17 @@ func TestExtractAPI(t *testing.T) {
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
-
 	api = extractAPI(ctx.r)
 	if api != "" {
 		t.Errorf("got %s, expected %s", api, "")
+	}
+
+	ctx, err = getTestContext("/some_index/_search", "")
+	if err != nil {
+		t.Error("could not get context: ", err)
+	}
+	api = extractAPI(ctx.r)
+	if api != "_search" {
+		t.Errorf("got %s, expected %s", api, "_search")
 	}
 }

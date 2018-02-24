@@ -196,7 +196,7 @@ func getRequestContext(r *http.Request, C *Config, trace *Trace) (*requestContex
 }
 
 func getFirstPathComponent(r *http.Request) string {
-	return strings.Split(r.URL.EscapedPath(), "/")[1]
+	return strings.Split(r.URL.Path, "/")[1]
 }
 
 func apiPermitted(ctx *requestContext) (bool, error) {

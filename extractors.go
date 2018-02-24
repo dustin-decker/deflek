@@ -48,7 +48,7 @@ type mgetBody struct {
 }
 
 // older versions of kibana use this format
-type msearchBody struct {
+type msearchBodyString struct {
 	// XXX: Fill in as needed ...
 	Index string `json:"index"`
 	// XXX: ...
@@ -72,7 +72,7 @@ func extractBodyIndices(api string, body []byte) ([]string, error) {
 	for _, JSON := range JSONs {
 
 		// attempt older string syntax
-		var msB msearchBody
+		var msB msearchBodyString
 		json.Unmarshal(JSON, &msB)
 
 		if msB.Index != "" {
@@ -117,8 +117,12 @@ func extractURIindices(r *http.Request) ([]string, error) {
 // extract API that are specified in the URI
 func extractAPI(r *http.Request) string {
 	api := getFirstPathComponent(r)
-	if len(api) > 1 && strings.HasPrefix(api, "_") {
-		return api
+	if len(api) > 1 {
+		for _, elem := range strings.Split(r.URL.Path, "/") {
+			if strings.HasPrefix(elem, "_") {
+				return elem
+			}
+		}
 	}
 
 	return ""

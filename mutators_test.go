@@ -16,8 +16,8 @@ func TestMutatePath(t *testing.T) {
 
 	expected := "/test_deflek,test_deflek2,globby-*/_search"
 
-	if ctx.r.URL.EscapedPath() != expected {
-		t.Errorf("got %v, expected %v", ctx.r.URL.EscapedPath(), expected)
+	if ctx.r.URL.Path != expected {
+		t.Errorf("got %v, expected %v", ctx.r.URL.Path, expected)
 	}
 }
 

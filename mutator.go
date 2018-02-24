@@ -25,10 +25,10 @@ func mutatePath(ctx *requestContext) {
 		}
 	}
 	indicesAsURI := strings.Join(indices, ",")
-	escapedPath := ctx.r.URL.EscapedPath()
-	escapedPath = strings.TrimPrefix(escapedPath, "/_all")
-	escapedPath = strings.TrimPrefix(escapedPath, "/*")
-	urlStr := "/" + indicesAsURI + escapedPath
+	path := ctx.r.URL.Path
+	path = strings.TrimPrefix(path, "/_all")
+	path = strings.TrimPrefix(path, "/*")
+	urlStr := "/" + indicesAsURI + path
 	reqURL, _ := url.Parse(urlStr)
 	ctx.r.URL = reqURL
 }
