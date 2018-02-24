@@ -64,7 +64,7 @@ func TestAPIPermitted(t *testing.T) {
 }
 
 func TestAPINotPermitted(t *testing.T) {
-	ctx, err := getTestContext("/_cluster/settings", "")
+	ctx, err := getTestContext("/test_deflek/_settings", "")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
