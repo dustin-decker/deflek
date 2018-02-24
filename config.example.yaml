@@ -27,6 +27,7 @@ rbac:
       can_manage: false
 
     group2:
+      can_manage: true
       whitelisted_indices:
         - name: test_deflek
           rest_verbs:
@@ -46,35 +47,32 @@ rbac:
           - POST
 
       whitelisted_apis: &kibana
-          - name: _nodes
-            rest_verbs:
-            - GET
-          - name: _msearch
-            rest_verbs:
-            - POST
-          - name: _all
-            rest_verbs:
-            - GET
-            - POST
-          - name: _search
-            rest_verbs:
-            - GET
-          - name: _mget
-            rest_verbs:
-            - POST
-          - name: _mapping
-            rest_verbs:
-            - GET
-          - name: _aliases
-            rest_verbs:
-            - GET
-          - name: _field_stats
-            rest_verbs:
-            - POST
-
-          # for settings update 
-          - name: _template
-            rest_verbs:
+        - name: _nodes
+          rest_verbs:
+          - GET
+        - name: _msearch
+          rest_verbs:
+          - POST
+        - name: _all
+          rest_verbs: ["GET", "POST"]
+        - name: _search
+          rest_verbs: ["GET", "POST"]
+        - name: _mget
+          rest_verbs:
+          - POST
+        - name: _mappings
+          rest_verbs:
+          - GET
+        - name: _local
+          rest_verbs:
+          - GET
+        - name: _aliases
+          rest_verbs:
+          - GET
+        - name: _field_stats
+          rest_verbs:
+          - POST
+        # for settings update 
+        - name: _template
+          rest_verbs:
             - PUT
-
-      can_manage: false
