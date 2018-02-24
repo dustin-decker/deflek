@@ -145,6 +145,18 @@ func TestCheckRBAC(t *testing.T) {
 	}
 }
 
+func TestCanManager(t *testing.T) {
+	ctx, err := getTestContext("/*/_search", "")
+	if err != nil {
+		t.Error("could not get context: ", err)
+	}
+
+	ok, err := canManage(ctx.r, ctx.C)
+	if ok || err != nil {
+		t.Error("should not be able to manage or error: ", err)
+	}
+}
+
 func indexInSlice(a Index, indices []Index) bool {
 	for _, b := range indices {
 		if b.Name == a.Name {
