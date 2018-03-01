@@ -14,6 +14,18 @@ to the core of Elasticsearch!
 
 It currently requires fronting with a SSO authentication proxy (such as [saml-proxy](https://github.com/dustin-decker/saml-proxy)) to pass Username and Group headers for RBAC lookup. deflEK assumes these headers are trusted input. If that is not true for your use case, you MUST add your own authentication middleware, or else it will not work.
 
+My setup looks like this:
+
+`USER -> saml-proxy -> Kibana -> deflek -> Elasticsearch`
+
+To have Kibana pass user and group headers from `saml-proxy` to `deflek`, use Kibana's `elasticsearch.requestHeadersWhitelist` configuration option, documented here: https://www.elastic.co/guide/en/kibana/6.2/settings.html
+The headers specified in `config.example.yaml` would be specified like this:
+
+```
+elasticsearch.requestHeadersWhitelist: ["X-Remote-Groups", "X-Remote-User"]
+```
+
+
 ## Features
 
 - RBAC on indices and APIs
@@ -33,6 +45,12 @@ aditionally, deflek has index awareness for the following APIs:
 - direct index access (/< index >/1)
 
 deflek can also mutate wildcard requests on the fly, to support software like Kibana.
+
+## Configuration
+
+`config.example.yaml` is included as a sample configuration file. This is also the config that should be used with integration tests. It includes the indices and API whitelisting necessary to support Kibana.
+
+You will need to edit the headers to match what your authentication layer passes to deflek. You will also need to modify groups access to match what will be included via those headers.
 
 ## Running it
 
