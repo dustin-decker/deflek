@@ -22,6 +22,7 @@ rbac:
           - GET
           - POST
 
+      # YAML supports pointers
       whitelisted_apis: *kibana
 
       can_manage: false
@@ -46,6 +47,7 @@ rbac:
           - GET
           - POST
 
+      # you can reuse this declaration with a YAML pointer
       whitelisted_apis: &kibana
         - name: _nodes
           rest_verbs:
@@ -76,3 +78,9 @@ rbac:
         - name: _template
           rest_verbs:
             - PUT
+        - name: _update
+          rest_verbs:
+            - POST
+        - name: _create
+          rest_verbs:
+            - POST

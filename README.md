@@ -25,7 +25,6 @@ The headers specified in `config.example.yaml` would be specified like this:
 elasticsearch.requestHeadersWhitelist: ["X-Remote-Groups", "X-Remote-User"]
 ```
 
-
 ## Features
 
 - RBAC on indices and APIs
