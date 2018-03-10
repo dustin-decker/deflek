@@ -103,7 +103,7 @@ func (p *Prox) handleRequest(w http.ResponseWriter, r *http.Request) {
 	if trans.Response != nil {
 		trace.Code = trans.Response.StatusCode
 	} else {
-		trace.Code = 401
+		trace.Code = 403
 	}
 
 	trace.Method = r.Method

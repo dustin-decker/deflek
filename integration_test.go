@@ -100,7 +100,7 @@ func testBlocked(t *testing.T, res *http.Response) {
 	if err != nil {
 		t.Error("couldn't read the body. got: ", err)
 	}
-	if res.StatusCode != 401 {
+	if res.StatusCode != 403 {
 		t.Errorf("request should have been blocked. got: \n status code: %v \nbody: %s", res.StatusCode, string(body))
 	}
 }
