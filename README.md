@@ -14,7 +14,7 @@ to the core of Elasticsearch!
 
 It currently requires fronting with a SSO authentication proxy (such as [saml-proxy](https://github.com/dustin-decker/saml-proxy)) to pass Username and Group headers for RBAC lookup. deflEK assumes these headers are trusted input. If that is not true for your use case, you MUST add your own authentication middleware, or else it will not work.
 
-My setup looks like this:
+An example setup looks like this:
 
 `USER -> saml-proxy -> Kibana -> deflek -> Elasticsearch`
 
