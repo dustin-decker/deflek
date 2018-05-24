@@ -53,34 +53,31 @@ rbac:
           rest_verbs:
           - GET
         - name: _msearch
-          rest_verbs:
-          - POST
+          rest_verbs: ["POST"]
         - name: _all
           rest_verbs: ["GET", "POST"]
         - name: _search
           rest_verbs: ["GET", "POST"]
         - name: _mget
-          rest_verbs:
-          - POST
+          rest_verbs: ["POST"]
         - name: _mappings
-          rest_verbs:
-          - GET
+          rest_verbs: ["GET"]
+        - name: _mapping
+          rest_verbs: ["GET"]
         - name: _local
-          rest_verbs:
-          - GET
+          rest_verbs: ["GET"]
         - name: _aliases
-          rest_verbs:
-          - GET
+          rest_verbs: ["GET"]
         - name: _field_stats
-          rest_verbs:
-          - POST
+          rest_verbs: ["POST"]
+        - name: _nodes
+          rest_verbs: ["GET"]
         # for settings update 
         - name: _template
-          rest_verbs:
-            - PUT
+          rest_verbs: ["PUT", "GET", "DELETE"]
         - name: _update
-          rest_verbs:
-            - POST
+          rest_verbs: ["POST"]
         - name: _create
-          rest_verbs:
-            - POST
+          rest_verbs: ["POST"]
+        - name: _field_caps
+          rest_verbs: ["POST"]
