@@ -61,6 +61,20 @@ func TestAPIPermitted(t *testing.T) {
 	if !ok || err != nil {
 		t.Error("API permitted or err: ", err)
 	}
+
+	ctx, err = getTestContext("/_template/kibana_index_template", "")
+	if err != nil {
+		t.Error("could not get context: ", err)
+	}
+
+	if extractAPI(ctx.r) != "_template" {
+		t.Error("Expected _template for API, got: ", extractAPI(ctx.r))
+	}
+
+	ok, err = apiPermitted(ctx)
+	if !ok || err != nil {
+		t.Error("API permitted or err: ", err)
+	}
 }
 
 func TestAPINotPermitted(t *testing.T) {
