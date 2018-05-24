@@ -122,7 +122,7 @@ func TestExtractBodyBulk(t *testing.T) {
 }
 
 func TestExtractAPI(t *testing.T) {
-	ctx, err := getTestContext("/_nodes/local", "")
+	ctx, err := getTestContext("/_nodes/local", "", "GET")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
@@ -131,7 +131,7 @@ func TestExtractAPI(t *testing.T) {
 		t.Errorf("got %s, expected %s", api, "_nodes")
 	}
 
-	ctx, err = getTestContext("/some_index/local", "")
+	ctx, err = getTestContext("/some_index/local", "", "GET")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
@@ -140,7 +140,7 @@ func TestExtractAPI(t *testing.T) {
 		t.Errorf("got %s, expected %s", api, "")
 	}
 
-	ctx, err = getTestContext("/some_index/_search", "")
+	ctx, err = getTestContext("/some_index/_search", "", "GET")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -204,6 +205,8 @@ func apiPermitted(ctx *requestContext) (bool, error) {
 
 	if len(api) > 0 {
 		for _, whitelistedAPI := range ctx.whitelistedAPIs {
+			wAPI := whitelistedAPI
+			fmt.Println(wAPI)
 			// match API patterns in the RBAC config against patterns
 			// that were extracted (both support globs)
 			if glob.Glob(whitelistedAPI.Name, api) {

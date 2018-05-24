@@ -7,7 +7,7 @@ import (
 )
 
 func TestMutatePath(t *testing.T) {
-	ctx, err := getTestContext("/_all/_search", "")
+	ctx, err := getTestContext("/_all/_search", "", "GET")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
@@ -26,7 +26,7 @@ func TestMutateWildcardIndexInBody(t *testing.T) {
 {"size":0,"query":{"bool":{"must":[{"range":{"@timestamp":{"gte":1519223869113,"lte":1519225669114,"format":"epoch_millis"}}},{"bool":{"must":[{"match_all":{}}],"must_not":[]}}]}},"aggs":{"61ca57f1-469d-11e7-af02-69e470af7417":{"filter":{"match_all":{}},"aggs":{"timeseries":{"date_histogram":{"field":"@timestamp","interval":"30s","min_doc_count":0,"time_zone":"America/Chicago","extended_bounds":{"min":1519223869113,"max":1519225669114}},"aggs":{"61ca57f2-469d-11e7-af02-69e470af7417":{"bucket_script":{"buckets_path":{"count":"_count"},"script":{"inline":"count * 1","lang":"expression"},"gap_policy":"skip"}}}}}}}}
 `
 
-	ctx, err := getTestContext("/_msearch", body)
+	ctx, err := getTestContext("/_msearch", body, "GET")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}

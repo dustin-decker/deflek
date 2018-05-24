@@ -8,8 +8,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func getTestContext(path string, body string) (*requestContext, error) {
-	req, _ := http.NewRequest("GET", "http://localhost:9200"+path, bytes.NewBufferString(body))
+func getTestContext(path string, body string, method string) (*requestContext, error) {
+	req, _ := http.NewRequest(method, "http://localhost:9200"+path, bytes.NewBufferString(body))
 	req.Header.Add("X-Remote-User", "dustind")
 	req.Header.Add("X-Remote-Groups", "OU=thing,CN=group2,DC=something")
 
@@ -28,57 +28,66 @@ func TestIndexPermitted(t *testing.T) {
 {"size":0,"query":{"bool":{"must":[{"range":{"@timestamp":{"gte":1519223869113,"lte":1519225669114,"format":"epoch_millis"}}},{"bool":{"must":[{"match_all":{}}],"must_not":[]}}]}},"aggs":{"61ca57f1-469d-11e7-af02-69e470af7417":{"filter":{"match_all":{}},"aggs":{"timeseries":{"date_histogram":{"field":"@timestamp","interval":"30s","min_doc_count":0,"time_zone":"America/Chicago","extended_bounds":{"min":1519223869113,"max":1519225669114}},"aggs":{"61ca57f2-469d-11e7-af02-69e470af7417":{"bucket_script":{"buckets_path":{"count":"_count"},"script":{"inline":"count * 1","lang":"expression"},"gap_policy":"skip"}}}}}}}}
 `
 
-	ctx, err := getTestContext("/*/_search", body)
+	ctx, err := getTestContext("/*/_search", body, "GET")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
 
 	ok, err := indexPermitted(ctx)
-	if !ok || err != nil {
+	if ok == false || err != nil {
 		t.Error("index not permitted or err: ", err)
 	}
 }
 
 func TestIndexNotPermitted(t *testing.T) {
-	ctx, err := getTestContext("/secret_stuff/_search", "")
+	ctx, err := getTestContext("/secret_stuff/_search", "", "GET")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
 
 	ok, err := indexPermitted(ctx)
-	if ok || err != nil {
+	if ok == true || err != nil {
 		t.Error("index permitted or err: ", err)
 	}
 }
 
 func TestAPIPermitted(t *testing.T) {
-	ctx, err := getTestContext("/_nodes/local", "")
+	// GET to _nodes
+	ctx, err := getTestContext("/_nodes/local", "", "GET")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
-
 	ok, err := apiPermitted(ctx)
-	if !ok || err != nil {
-		t.Error("API permitted or err: ", err)
+	if ok == false || err != nil {
+		t.Error("API not permitted or err: ", err)
 	}
 
-	ctx, err = getTestContext("/_template/kibana_index_template", "")
+	// PUT to _template
+	ctx, err = getTestContext("/_template/kibana_index_template", "", "PUT")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
-
 	if extractAPI(ctx.r) != "_template" {
 		t.Error("Expected _template for API, got: ", extractAPI(ctx.r))
 	}
-
 	ok, err = apiPermitted(ctx)
-	if !ok || err != nil {
+	if ok == false || err != nil {
+		t.Error("API not permitted or err: ", err)
+	}
+
+	// DELETE to _template
+	ctx, err = getTestContext("/_template/kibana_index_template", "", "DELETE")
+	if err != nil {
+		t.Error("could not get context: ", err)
+	}
+	ok, err = apiPermitted(ctx)
+	if ok == true || err != nil {
 		t.Error("API permitted or err: ", err)
 	}
 }
 
 func TestAPINotPermitted(t *testing.T) {
-	ctx, err := getTestContext("/test_deflek/_settings", "")
+	ctx, err := getTestContext("/test_deflek/_settings", "", "GET")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
@@ -110,7 +119,7 @@ func TestGetWhitelistedIndices(t *testing.T) {
 			}},
 	}
 
-	ctx, err := getTestContext("/", "")
+	ctx, err := getTestContext("/", "", "GET")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
@@ -126,7 +135,7 @@ func TestGetWhitelistedIndices(t *testing.T) {
 }
 
 func TestGetUser(t *testing.T) {
-	ctx, err := getTestContext("/", "")
+	ctx, err := getTestContext("/", "", "GET")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
@@ -146,7 +155,7 @@ func TestCheckRBAC(t *testing.T) {
 {"size":0,"query":{"bool":{"must":[{"range":{"@timestamp":{"gte":1519223869113,"lte":1519225669114,"format":"epoch_millis"}}},{"bool":{"must":[{"match_all":{}}],"must_not":[]}}]}},"aggs":{"61ca57f1-469d-11e7-af02-69e470af7417":{"filter":{"match_all":{}},"aggs":{"timeseries":{"date_histogram":{"field":"@timestamp","interval":"30s","min_doc_count":0,"time_zone":"America/Chicago","extended_bounds":{"min":1519223869113,"max":1519225669114}},"aggs":{"61ca57f2-469d-11e7-af02-69e470af7417":{"bucket_script":{"buckets_path":{"count":"_count"},"script":{"inline":"count * 1","lang":"expression"},"gap_policy":"skip"}}}}}}}}
 `
 
-	ctx, err := getTestContext("/*/_search", body)
+	ctx, err := getTestContext("/*/_search", body, "GET")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}
@@ -160,7 +169,7 @@ func TestCheckRBAC(t *testing.T) {
 }
 
 func TestCanManager(t *testing.T) {
-	ctx, err := getTestContext("/*/_search", "")
+	ctx, err := getTestContext("/*/_search", "", "GET")
 	if err != nil {
 		t.Error("could not get context: ", err)
 	}

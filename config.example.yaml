@@ -49,9 +49,6 @@ rbac:
 
       # you can reuse this declaration with a YAML pointer
       whitelisted_apis: &kibana
-        - name: _nodes
-          rest_verbs:
-          - GET
         - name: _msearch
           rest_verbs: ["POST"]
         - name: _all
@@ -74,7 +71,7 @@ rbac:
           rest_verbs: ["GET"]
         # for settings update 
         - name: _template
-          rest_verbs: ["PUT", "GET", "DELETE"]
+          rest_verbs: ["PUT", "GET"]
         - name: _update
           rest_verbs: ["POST"]
         - name: _create
