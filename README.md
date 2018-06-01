@@ -56,7 +56,7 @@ You will need to edit the headers to match what your authentication layer passes
 Build docker image:
 
 ``` bash
-docker build -t deflek -f Dockerfile.local .
+docker build -t deflek .
 ```
 
 Deploy test stack to local Swarm:
