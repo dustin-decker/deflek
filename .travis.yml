@@ -1,0 +1,17 @@
+language: go
+
+go:
+  - 1.8.x
+  - 1.9.x
+  - 1.10.x
+
+before_install:                                                                 
+  - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh  
+  - dep ensure
+
+script:
+  - go build
+  - cp config.example.yaml config.yaml; go test -race -coverprofile=coverage.txt -covermode=atomic
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
