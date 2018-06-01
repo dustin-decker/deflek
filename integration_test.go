@@ -1,3 +1,6 @@
+//+build integration
+
+// requires integration tag to test like: go test -tags integration
 package main
 
 // these tests require the current build of deflek running with
