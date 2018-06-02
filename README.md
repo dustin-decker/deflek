@@ -2,6 +2,8 @@
 
 Reverse proxy that adds index-level RBAC to Elasticsearch.
 
+[![Travis CI Build Status](https://travis-ci.com/dustin-decker/deflek.svg?branch=master)](https://travis-ci.com/dustin-decker/deflek)
+
 ## Disclaimer
 
 Deflek man-in-the-middles requests to elasticsearch in order to apply a best effort to filter access
