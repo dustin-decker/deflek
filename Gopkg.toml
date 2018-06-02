@@ -22,11 +22,9 @@
 
 
 [[constraint]]
-  name = "github.com/inconshreveable/log15"
-
-[[constraint]]
   branch = "master"
   name = "github.com/ryanuber/go-glob"
 
 [[constraint]]
+  branch = "v2"
   name = "gopkg.in/yaml.v2"
