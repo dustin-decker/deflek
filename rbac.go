@@ -126,7 +126,7 @@ func getUser(r *http.Request, C *Config) (string, error) {
 
 func getGroups(r *http.Request, C *Config) []string {
 	// Group is trusted input provided by a SSO proxy layer
-	var groups []string
+	var groups = []string{C.AnonymousGroup}
 	if _, ok := r.Header[C.GroupHeaderName]; ok {
 		rawGroups := r.Header[C.GroupHeaderName][0]
 		switch groupType := C.GroupHeaderType; groupType {
