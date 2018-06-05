@@ -15,10 +15,10 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-func (C *Config) getConf() *Config {
+func (C *Config) getConf(configPath string) *Config {
 
 	pwd, _ := os.Getwd()
-	yamlFile, err := ioutil.ReadFile(path.Join(pwd, "config.yaml"))
+	yamlFile, err := ioutil.ReadFile(path.Join(pwd, configPath))
 	if err != nil {
 		log.Error(err.Error())
 		os.Exit(1)

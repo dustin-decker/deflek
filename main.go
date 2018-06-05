@@ -23,7 +23,7 @@ type Config struct {
 
 func main() {
 	var C Config
-	C.getConf()
+	C.getConf("config.yaml")
 
 	proxy := NewProx(&C)
 

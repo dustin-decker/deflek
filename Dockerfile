@@ -21,6 +21,7 @@ EXPOSE 8080
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /go/src/github.com/dustin-decker/deflek/deflek /deflek
+COPY --from=builder /go/src/github.com/dustin-decker/deflek/config.example.yaml /config.example.yaml
 COPY --from=builder /go/src/github.com/dustin-decker/deflek/config.yaml /config.yaml
 USER container-user
 ENTRYPOINT ["/deflek"]]

@@ -14,7 +14,7 @@ func getTestContext(path string, body string, method string) (*requestContext, e
 	req.Header.Add("X-Remote-Groups", "OU=thing,CN=group2,DC=something")
 
 	var c Config
-	c.getConf()
+	c.getConf("config.example.yaml")
 
 	var trace Trace
 
