@@ -83,10 +83,7 @@ func (p *Prox) checkRBAC(ctx *requestContext) (bool, error) {
 	}
 	ctx.trace.User = user
 
-	groups, err := getGroups(ctx.r, ctx.C)
-	if err != nil {
-		return false, err
-	}
+	groups := getGroups(ctx.r, ctx.C)
 	ctx.trace.Groups = groups
 
 	ok, err := apiPermitted(ctx)
@@ -103,7 +100,7 @@ func (p *Prox) checkRBAC(ctx *requestContext) (bool, error) {
 }
 
 func canManage(r *http.Request, C *Config) (bool, error) {
-	groups, _ := getGroups(r, C)
+	groups := getGroups(r, C)
 
 	// Can any of the groups manage?
 	for _, group := range groups {
@@ -127,21 +124,21 @@ func getUser(r *http.Request, C *Config) (string, error) {
 	return username, nil
 }
 
-func getGroups(r *http.Request, C *Config) ([]string, error) {
+func getGroups(r *http.Request, C *Config) []string {
 	// Group is trusted input provided by a SSO proxy layer
+	var groups []string
 	if _, ok := r.Header[C.GroupHeaderName]; ok {
 		rawGroups := r.Header[C.GroupHeaderName][0]
 		switch groupType := C.GroupHeaderType; groupType {
 		case "AD":
-			groups := getAdGroups(rawGroups)
-			return groups, nil
+			groups = getAdGroups(rawGroups)
+		case "space-delimited":
+			groups = getSpaceDelimitedGroups(rawGroups)
 		default:
-			groups := []string{C.AnonymousGroup}
-			return groups, nil
+			groups = []string{C.AnonymousGroup}
 		}
 	}
-	groups := []string{C.AnonymousGroup}
-	return groups, nil
+	return groups
 }
 
 func getAdGroups(rawGroups string) []string {
@@ -159,12 +156,14 @@ func getAdGroups(rawGroups string) []string {
 	return groups
 }
 
+func getSpaceDelimitedGroups(rawGroups string) []string {
+	groups := strings.Split(rawGroups, " ")
+	return groups
+}
+
 func getWhitelistedIndices(r *http.Request, C *Config) ([]Index, error) {
 	var indices []Index
-	groups, err := getGroups(r, C)
-	if err != nil {
-		return indices, err
-	}
+	groups := getGroups(r, C)
 
 	for _, group := range groups {
 		if configGroup, ok := C.RBAC.Groups[group]; ok {
@@ -179,10 +178,7 @@ func getWhitelistedIndices(r *http.Request, C *Config) ([]Index, error) {
 
 func getWhitelistedAPIs(r *http.Request, C *Config) ([]API, error) {
 	var apis []API
-	groups, err := getGroups(r, C)
-	if err != nil {
-		return apis, err
-	}
+	groups := getGroups(r, C)
 
 	for _, group := range groups {
 		if configGroup, ok := C.RBAC.Groups[group]; ok {
